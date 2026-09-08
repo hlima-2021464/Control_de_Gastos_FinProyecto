@@ -1,0 +1,235 @@
+<div class="space-y-5 p-6 overflow-y-auto">
+
+  <!-- Header Superior -->
+  <header class="flex justify-between items-center">
+    <div>
+      <h2 class="text-xl font-bold tracking-tight text-white">Fondos de Reserva y Metas de Ahorro</h2>
+      <p class="text-xs text-slate-400">Planifique y capitalice objetivos financieros con seguimiento porcentual continuo.</p>
+    </div>
+
+    <button
+      id="btn-nueva-meta"
+      type="button"
+      (click)="abrirModalNuevaMeta()"
+      class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-emerald-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      Nueva Meta de Ahorro
+    </button>
+  </header>
+
+  <!-- 1. Tarjetas de Resumen Global de Ahorro -->
+  <section class="grid grid-cols-3 gap-4">
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Fondo Total Capitalizado</span>
+      <p class="text-xl font-bold text-emerald-400">Q {{ (totalAhorrado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-[11px] text-slate-400">Fondos actualmente resguardados.</p>
+    </div>
+
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Capital Objetivo Global</span>
+      <p class="text-xl font-bold text-slate-100">Q {{ (totalObjetivo$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-[11px] text-slate-400">Suma meta de todas las alcancías activas.</p>
+    </div>
+
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Cumplimiento Global</span>
+      <p class="text-xl font-bold text-violet-300">{{ (porcentajeCumplimientoGlobal$ | async) || 0 }}%</p>
+      <p class="text-[11px] text-slate-400">Avance consolidado de ahorro.</p>
+    </div>
+  </section>
+
+  <!-- 2. Cuadrícula de Metas Activas -->
+  <section class="grid grid-cols-2 gap-4">
+    @for (meta of metas$ | async; track meta.id) {
+      <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-emerald-500/40 transition duration-300 border-l-4" [style.border-left-color]="meta.colorHex">
+        <!-- Cabecera de la Meta -->
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-bold text-white text-base">{{ meta.titulo }}</h3>
+            <span class="text-[11px] text-slate-400">Fecha Límite: <strong class="text-slate-300 font-mono">{{ meta.fechaLimite | date:'dd/MM/yyyy' }}</strong></span>
+          </div>
+
+          <div class="text-right">
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              {{ calcularPorcentaje(meta.montoActual, meta.montoObjetivo) }}% Completado
+            </span>
+          </div>
+        </div>
+
+        <!-- Importes y Progreso -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-baseline text-xs">
+            <span class="text-slate-400">Ahorrado: <strong class="text-white text-sm">Q {{ meta.montoActual | number:'1.2-2' }}</strong></span>
+            <span class="text-slate-400">Meta: <strong class="text-slate-200">Q {{ meta.montoObjetivo | number:'1.2-2' }}</strong></span>
+          </div>
+
+          <div class="w-full bg-slate-900/80 rounded-full h-3 p-0.5 border border-slate-800 relative overflow-hidden">
+            <div
+              class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+              [style.width.%]="calcularPorcentaje(meta.montoActual, meta.montoObjetivo)">
+            </div>
+          </div>
+
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Resta: Q {{ (meta.montoObjetivo - meta.montoActual > 0 ? meta.montoObjetivo - meta.montoActual : 0) | number:'1.2-2' }}</span>
+            <span [ngClass]="meta.montoActual >= meta.montoObjetivo ? 'text-emerald-400 font-bold' : 'text-slate-500'">
+              {{ meta.montoActual >= meta.montoObjetivo ? 'Meta Alcanzada' : 'En Curso' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Acciones Inferiores -->
+        <div class="flex justify-between items-center pt-2 border-t border-slate-800/80 text-xs">
+          <button
+            type="button"
+            (click)="abrirModalAbono(meta)"
+            class="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 rounded-xl font-semibold transition cursor-pointer flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Abonar Fondos
+          </button>
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              (click)="abrirModalEditar(meta)"
+              class="text-violet-400 hover:text-violet-300 font-semibold cursor-pointer transition">
+              Editar
+            </button>
+            <button
+              type="button"
+              (click)="eliminarMeta(meta.id)"
+              class="text-rose-400/80 hover:text-rose-300 font-semibold cursor-pointer transition">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if ((metas$ | async)?.length === 0) {
+      <div class="col-span-2 glass-card p-12 text-center text-slate-400 space-y-3 rounded-2xl">
+        <p class="text-sm font-semibold text-slate-300">No cuenta con metas de ahorro configuradas en este momento.</p>
+        <p class="text-xs text-slate-500">Haga clic en "Nueva Meta de Ahorro" para establecer su primer objetivo financiero.</p>
+      </div>
+    }
+  </section>
+
+  <!-- Modal Crear / Editar Meta de Ahorro -->
+  @if (mostrarModalMeta()) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" (click)="cerrarModalMeta()">
+      <div class="glass-card w-full max-w-md p-6 rounded-2xl space-y-4 border border-emerald-500/30 shadow-2xl shadow-emerald-950/50" (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white">{{ modoEdicion() ? 'Editar Meta de Ahorro' : 'Crear Nueva Meta de Ahorro' }}</h3>
+          <button (click)="cerrarModalMeta()" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
+        </div>
+
+        <form [formGroup]="metaForm" (ngSubmit)="guardarMeta()" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Título de la Meta *</label>
+            <input
+              type="text"
+              formControlName="titulo"
+              placeholder="Ej. Fondo de Emergencia, Vacaciones, Curso de Posgrado"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-emerald-500">
+            @if (metaForm.get('titulo')?.touched && metaForm.get('titulo')?.invalid) {
+              <span class="text-[10px] text-rose-400 mt-0.5 block">Indique un título descriptivo (mínimo 3 caracteres).</span>
+            }
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Monto Objetivo (GTQ) *</label>
+              <input
+                type="number"
+                step="1"
+                min="10"
+                formControlName="montoObjetivo"
+                placeholder="Ej. 10000"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Monto Inicial (GTQ)</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                formControlName="montoActual"
+                placeholder="0.00"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-emerald-500">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Fecha Límite Estimada *</label>
+            <input
+              type="date"
+              formControlName="fechaLimite"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-emerald-500">
+          </div>
+
+          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              (click)="cerrarModalMeta()"
+              class="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800/60 font-semibold transition cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="metaForm.invalid"
+              class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-semibold text-white shadow-lg shadow-emerald-600/30 hover:opacity-90 disabled:opacity-50 cursor-pointer transition">
+              {{ modoEdicion() ? 'Guardar Cambios' : 'Registrar Meta' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Abonar Fondos a la Meta -->
+  @if (mostrarModalAbono()) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" (click)="cerrarModalAbono()">
+      <div class="glass-card w-full max-w-sm p-6 rounded-2xl space-y-4 border border-emerald-500/30 shadow-2xl shadow-emerald-950/50" (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-base font-bold text-white">Abonar Fondos</h3>
+            <p class="text-xs text-emerald-400 font-medium">{{ metaParaAbono()?.titulo }}</p>
+          </div>
+          <button (click)="cerrarModalAbono()" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
+        </div>
+
+        <form [formGroup]="abonoForm" (ngSubmit)="confirmarAbono()" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Monto a Depositar (GTQ) *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              formControlName="montoAbono"
+              placeholder="0.00"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-emerald-500">
+            @if (abonoForm.get('montoAbono')?.touched && abonoForm.get('montoAbono')?.invalid) {
+              <span class="text-[10px] text-rose-400 mt-0.5 block">Ingrese un monto superior a Q 0.00.</span>
+            }
+          </div>
+
+          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              (click)="cerrarModalAbono()"
+              class="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800/60 font-semibold transition cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="abonoForm.invalid"
+              class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-semibold text-white shadow-lg shadow-emerald-600/30 hover:opacity-90 disabled:opacity-50 cursor-pointer transition">
+              Confirmar Abono
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,228 @@
+<div class="space-y-5 p-6 overflow-y-auto">
+
+  <!-- Header Superior -->
+  <header class="flex justify-between items-center">
+    <div>
+      <h2 class="text-xl font-bold tracking-tight text-white">Límites y Techos Presupuestarios</h2>
+      <p class="text-xs text-slate-400">Control proactivo de consumo por categoría y prevención de desbordes financieros.</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        (click)="resetearValoresPorDefecto()"
+        class="px-3 py-1.5 glass-card rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer border border-slate-700/60">
+        Restaurar Valores Sugeridos
+      </button>
+
+      <button
+        id="btn-definir-presupuesto"
+        type="button"
+        (click)="abrirModalNuevo()"
+        class="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-violet-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Definir Presupuesto
+      </button>
+    </div>
+  </header>
+
+  <!-- 1. Tarjetas de Resumen Global -->
+  <section class="grid grid-cols-3 gap-4">
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Techo Presupuestado Total</span>
+      <p class="text-xl font-bold text-slate-100">Q {{ (totalPresupuestado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-[11px] text-slate-400">Límite financiero mensual combinado.</p>
+    </div>
+
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-amber-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Gasto Ejecutado en Rubros</span>
+      <p class="text-xl font-bold text-slate-100">Q {{ (totalEjecutado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-[11px] text-slate-400">Total debitado sobre categorías asignadas.</p>
+    </div>
+
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-1">
+      <span class="text-xs font-semibold text-slate-300">Margen Disponible General</span>
+      @if (totalPresupuestado$ | async; as pres) {
+        @if (totalEjecutado$ | async; as ejec) {
+          <p class="text-xl font-bold" [ngClass]="(pres - ejec) >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+            Q {{ (pres - ejec) | number:'1.2-2' }}
+          </p>
+          <p class="text-[11px] text-slate-400">Margen operativo restante en el ciclo.</p>
+        } @else {
+          <p class="text-xl font-bold text-emerald-400">Q {{ pres | number:'1.2-2' }}</p>
+          <p class="text-[11px] text-slate-400">100% disponible.</p>
+        }
+      } @else {
+        <p class="text-xl font-bold text-slate-400">Q 0.00</p>
+        <p class="text-[11px] text-slate-500">Sin presupuestos asignados.</p>
+      }
+    </div>
+  </section>
+
+  <!-- 2. Guía del Semáforo de Riesgo -->
+  <section class="glass-card px-4 py-2.5 rounded-xl flex items-center justify-between text-xs text-slate-300">
+    <div class="flex items-center gap-6">
+      <span class="font-semibold text-slate-200">Indicador Preventivo:</span>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></span>
+        <span class="text-[11px]">Consumo Normal (&lt; 70%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+        <span class="text-[11px]">Alerta Preventiva (70% - 89%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+        <span class="text-[11px]">Riesgo o Desborde (&ge; 90%)</span>
+      </div>
+    </div>
+    <span class="text-[10px] text-slate-400">Sincronizado con el módulo de Gastos</span>
+  </section>
+
+  <!-- 3. Cuadrícula de Presupuestos por Categoría -->
+  <section class="grid grid-cols-2 gap-4">
+    @for (item of presupuestos$ | async; track item.id) {
+      <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-violet-500/40 transition duration-300 relative overflow-hidden">
+        <!-- Indicador de cabecera -->
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-white text-base">{{ item.categoria }}</h3>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                {{ item.periodo }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Consumo: <strong class="text-white">Q {{ item.montoEjecutado | number:'1.2-2' }}</strong> de
+              <span class="text-slate-300 font-semibold">Q {{ item.montoLimite | number:'1.2-2' }}</span>
+            </p>
+          </div>
+
+          <!-- Badge de Estado -->
+          <div class="text-right">
+            @if (item.estadoColor === 'rose') {
+              <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
+                {{ item.desbordado ? 'Excedido' : 'Crítico' }} ({{ item.porcentajeConsumo }}%)
+              </span>
+            } @else if (item.estadoColor === 'amber') {
+              <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                Atención ({{ item.porcentajeConsumo }}%)
+              </span>
+            } @else {
+              <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                Óptimo ({{ item.porcentajeConsumo }}%)
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Barra de Progreso Dinámica -->
+        <div class="space-y-1.5">
+          <div class="w-full bg-slate-900/80 rounded-full h-3 p-0.5 border border-slate-800 relative overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              [ngClass]="{
+                'bg-gradient-to-r from-cyan-500 to-emerald-400': item.estadoColor === 'cyan',
+                'bg-gradient-to-r from-amber-500 to-yellow-400': item.estadoColor === 'amber',
+                'bg-gradient-to-r from-rose-600 to-red-500': item.estadoColor === 'rose'
+              }"
+              [style.width.%]="item.porcentajeConsumo > 100 ? 100 : item.porcentajeConsumo">
+            </div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Ejecutado: {{ item.porcentajeConsumo }}%</span>
+            <span>Disponible: Q {{ item.restante | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Acciones Inferiores -->
+        <div class="flex justify-end gap-3 pt-2 border-t border-slate-800/80 text-xs">
+          <button
+            type="button"
+            (click)="abrirModalEditar(item)"
+            class="text-violet-400 hover:text-violet-300 font-semibold cursor-pointer transition">
+            Ajustar Límite
+          </button>
+          <button
+            type="button"
+            (click)="eliminarPresupuesto(item.id)"
+            class="text-rose-400/80 hover:text-rose-300 font-semibold cursor-pointer transition">
+            Retirar
+          </button>
+        </div>
+      </div>
+    }
+
+    @if ((presupuestos$ | async)?.length === 0) {
+      <div class="col-span-2 glass-card p-12 text-center text-slate-400 space-y-3 rounded-2xl">
+        <p class="text-sm font-semibold text-slate-300">No hay techos presupuestarios activos actualmente.</p>
+        <p class="text-xs text-slate-500">Defina un presupuesto para comenzar a monitorear su consumo por rubro.</p>
+      </div>
+    }
+  </section>
+
+  <!-- Modal Definir / Editar Presupuesto -->
+  @if (mostrarModal()) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" (click)="cerrarModal()">
+      <div class="glass-card w-full max-w-md p-6 rounded-2xl space-y-4 border border-violet-500/30 shadow-2xl shadow-violet-950/50" (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white">{{ modoEdicion() ? 'Ajustar Límite Presupuestario' : 'Definir Nuevo Presupuesto' }}</h3>
+          <button (click)="cerrarModal()" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
+        </div>
+
+        <form [formGroup]="presupuestoForm" (ngSubmit)="guardarPresupuesto()" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Categoría *</label>
+            <select
+              formControlName="categoria"
+              [attr.disabled]="modoEdicion() ? true : null"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500 disabled:opacity-60">
+              @for (cat of categoriasGasto$ | async; track cat.id) {
+                <option [value]="cat.nombre">{{ cat.nombre }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Tope Límite (GTQ) *</label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                formControlName="montoLimite"
+                placeholder="Ej. 2000"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Período *</label>
+              <select
+                formControlName="periodo"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+                <option value="Mensual">Mensual</option>
+                <option value="Semanal">Semanal</option>
+                <option value="Anual">Anual</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              (click)="cerrarModal()"
+              class="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800/60 font-semibold transition cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="presupuestoForm.invalid"
+              class="px-5 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-xl font-semibold text-white shadow-lg shadow-violet-600/30 hover:opacity-90 disabled:opacity-50 cursor-pointer transition">
+              {{ modoEdicion() ? 'Actualizar Límite' : 'Establecer Presupuesto' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
