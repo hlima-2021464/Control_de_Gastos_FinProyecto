@@ -57,11 +57,13 @@ describe('DashboardComponent', () => {
     expect(initialGastos).toBe(0);
     expect(initialBalance).toBe(0);
 
+    const fechaHoy = new Date().toISOString().split('T')[0];
+
     // Agregar ingreso de Q 5,000
     incomeService.agregarIngreso({
       concepto: 'Abono Quincenal',
       monto: 5000,
-      fecha: '2026-08-15',
+      fecha: fechaHoy,
       fuente: 'Nómina Fija',
       cuentaDestino: 'Cuenta Monetaria BAC',
     });
@@ -70,7 +72,7 @@ describe('DashboardComponent', () => {
     expenseService.agregarGasto({
       concepto: 'Pago de Servicios',
       monto: 1200,
-      fecha: '2026-08-16',
+      fecha: fechaHoy,
       categoria: 'Servicios',
       metodoPago: 'Transferencia',
     });

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SavingsService, SavingGoal } from '../../../../core/services/savings.service';
+import { obtenerFechaHoyISO } from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-ahorro',
@@ -29,7 +30,7 @@ export class AhorroComponent {
     titulo: ['', [Validators.required, Validators.minLength(3)]],
     montoObjetivo: [null, [Validators.required, Validators.min(10)]],
     montoActual: [0, [Validators.min(0)]],
-    fechaLimite: [new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split('T')[0], [Validators.required]],
+    fechaLimite: [obtenerFechaHoyISO(), [Validators.required]],
     colorHex: ['#10b981', [Validators.required]],
   });
 
@@ -47,7 +48,7 @@ export class AhorroComponent {
       titulo: '',
       montoObjetivo: null,
       montoActual: 0,
-      fechaLimite: new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      fechaLimite: obtenerFechaHoyISO(),
       colorHex: '#10b981',
     });
     this.mostrarModalMeta.set(true);
@@ -136,5 +137,15 @@ export class AhorroComponent {
   calcularPorcentaje(actual: number, objetivo: number): number {
     if (objetivo <= 0) return 0;
     return Math.min(100, Math.round((actual / objetivo) * 100));
+  }
+
+  calcularCircunferencia(radio: number = 32): number {
+    return 2 * Math.PI * radio;
+  }
+
+  calcularDashOffset(actual: number, objetivo: number, radio: number = 32): number {
+    const circunf = this.calcularCircunferencia(radio);
+    const porcentaje = this.calcularPorcentaje(actual, objetivo);
+    return circunf - (porcentaje / 100) * circunf;
   }
 }

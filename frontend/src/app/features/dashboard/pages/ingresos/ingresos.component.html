@@ -1,4 +1,4 @@
-<div class="space-y-5 p-6 overflow-y-auto">
+<div class="space-y-5 p-6 min-h-full pb-20">
   <!-- Header Superior -->
   <header class="flex justify-between items-center">
     <div>
@@ -9,7 +9,7 @@
     <div class="flex items-center gap-3">
       <div class="glass-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 border border-violet-500/20 flex items-center gap-1.5">
         <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-        <span>Agosto 2026</span>
+        <span>{{ mesAnioActual() }}</span>
       </div>
       <button (click)="abrirModalRegistro()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-emerald-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>

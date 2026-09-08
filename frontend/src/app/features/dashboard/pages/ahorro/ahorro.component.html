@@ -1,4 +1,4 @@
-<div class="space-y-5 p-6 overflow-y-auto">
+<div class="space-y-5 p-6 min-h-full pb-20">
 
   <!-- Header Superior -->
   <header class="flex justify-between items-center">
@@ -19,61 +19,90 @@
 
   <!-- 1. Tarjetas de Resumen Global de Ahorro -->
   <section class="grid grid-cols-3 gap-4">
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1">
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Fondo Total Capitalizado</span>
-      <p class="text-xl font-bold text-emerald-400">Q {{ (totalAhorrado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-emerald-400 font-mono">Q {{ (totalAhorrado$ | async) || 0 | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Fondos actualmente resguardados.</p>
     </div>
 
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1">
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Capital Objetivo Global</span>
-      <p class="text-xl font-bold text-slate-100">Q {{ (totalObjetivo$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-slate-100 font-mono">Q {{ (totalObjetivo$ | async) || 0 | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Suma meta de todas las alcancías activas.</p>
     </div>
 
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-1">
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Cumplimiento Global</span>
-      <p class="text-xl font-bold text-violet-300">{{ (porcentajeCumplimientoGlobal$ | async) || 0 }}%</p>
+      <p class="text-xl font-bold text-violet-300 font-mono">{{ (porcentajeCumplimientoGlobal$ | async) || 0 }}%</p>
       <p class="text-[11px] text-slate-400">Avance consolidado de ahorro.</p>
     </div>
   </section>
 
-  <!-- 2. Cuadrícula de Metas Activas -->
+  <!-- 2. Cuadrícula de Metas Activas con Anillos SVG y Barras de Liquidez -->
   <section class="grid grid-cols-2 gap-4">
     @for (meta of metas$ | async; track meta.id) {
-      <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-emerald-500/40 transition duration-300 border-l-4" [style.border-left-color]="meta.colorHex">
-        <!-- Cabecera de la Meta -->
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="font-bold text-white text-base">{{ meta.titulo }}</h3>
-            <span class="text-[11px] text-slate-400">Fecha Límite: <strong class="text-slate-300 font-mono">{{ meta.fechaLimite | date:'dd/MM/yyyy' }}</strong></span>
+      <div
+        class="glass-card p-5 rounded-2xl space-y-4 hover:scale-[1.01] transition-all duration-300 border-l-4 shadow-md relative overflow-hidden"
+        [style.border-left-color]="meta.colorHex">
+        <!-- Cabecera de la Meta con Anillo SVG Circular -->
+        <div class="flex items-center gap-4">
+          <!-- Anillo Circular SVG de Progreso -->
+          <div class="relative w-14 h-14 shrink-0 flex items-center justify-center">
+            <svg class="w-14 h-14 -rotate-90 transform" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" stroke="currentColor" stroke-width="5" class="text-slate-800/80" fill="transparent" />
+              <circle
+                cx="36"
+                cy="36"
+                r="30"
+                stroke="currentColor"
+                stroke-width="5"
+                [style.stroke]="meta.colorHex || '#10b981'"
+                class="transition-all duration-700 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                stroke-linecap="round"
+                fill="transparent"
+                [style.stroke-dasharray]="calcularCircunferencia(30)"
+                [style.stroke-dashoffset]="calcularDashOffset(meta.montoActual, meta.montoObjetivo, 30)"
+              />
+            </svg>
+            <span class="absolute font-mono font-bold text-[10px] text-white">
+              {{ calcularPorcentaje(meta.montoActual, meta.montoObjetivo) }}%
+            </span>
           </div>
 
-          <div class="text-right">
-            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-              {{ calcularPorcentaje(meta.montoActual, meta.montoObjetivo) }}% Completado
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-white text-base truncate">{{ meta.titulo }}</h3>
+            <span class="text-[11px] text-slate-400 block mt-0.5">
+              Fecha Límite: <strong class="text-slate-300 font-mono">{{ meta.fechaLimite | date:'dd/MM/yyyy' }}</strong>
+            </span>
+          </div>
+
+          <div class="text-right shrink-0">
+            <span
+              class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border"
+              [ngClass]="meta.montoActual >= meta.montoObjetivo ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-300 border-slate-700'">
+              {{ meta.montoActual >= meta.montoObjetivo ? 'Completado' : 'En Progreso' }}
             </span>
           </div>
         </div>
 
-        <!-- Importes y Progreso -->
+        <!-- Importes y Barra de Liquidez Dinámica -->
         <div class="space-y-2">
           <div class="flex justify-between items-baseline text-xs">
-            <span class="text-slate-400">Ahorrado: <strong class="text-white text-sm">Q {{ meta.montoActual | number:'1.2-2' }}</strong></span>
-            <span class="text-slate-400">Meta: <strong class="text-slate-200">Q {{ meta.montoObjetivo | number:'1.2-2' }}</strong></span>
+            <span class="text-slate-400">Ahorrado: <strong class="text-white text-sm font-mono">Q {{ meta.montoActual | number:'1.2-2' }}</strong></span>
+            <span class="text-slate-400">Meta: <strong class="text-slate-300 font-mono">Q {{ meta.montoObjetivo | number:'1.2-2' }}</strong></span>
           </div>
 
-          <div class="w-full bg-slate-900/80 rounded-full h-3 p-0.5 border border-slate-800 relative overflow-hidden">
+          <div class="w-full bg-slate-950/80 rounded-full h-3 p-0.5 border border-slate-800/80 relative overflow-hidden shadow-inner">
             <div
-              class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+              class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 transition-all duration-700 shadow-[0_0_12px_rgba(16,185,129,0.7)]"
               [style.width.%]="calcularPorcentaje(meta.montoActual, meta.montoObjetivo)">
             </div>
           </div>
 
-          <div class="flex justify-between text-[10px] text-slate-400">
-            <span>Resta: Q {{ (meta.montoObjetivo - meta.montoActual > 0 ? meta.montoObjetivo - meta.montoActual : 0) | number:'1.2-2' }}</span>
-            <span [ngClass]="meta.montoActual >= meta.montoObjetivo ? 'text-emerald-400 font-bold' : 'text-slate-500'">
-              {{ meta.montoActual >= meta.montoObjetivo ? 'Meta Alcanzada' : 'En Curso' }}
+          <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+            <span>Resta: <strong class="text-slate-200">Q {{ (meta.montoObjetivo - meta.montoActual > 0 ? meta.montoObjetivo - meta.montoActual : 0) | number:'1.2-2' }}</strong></span>
+            <span [ngClass]="meta.montoActual >= meta.montoObjetivo ? 'text-emerald-400 font-bold' : 'text-slate-400'">
+              {{ meta.montoActual >= meta.montoObjetivo ? 'Objetivo Cumplido' : 'En Curso' }}
             </span>
           </div>
         </div>

@@ -1,4 +1,4 @@
-<div class="space-y-5 p-6 overflow-y-auto">
+<div class="space-y-5 p-6 min-h-full pb-20">
 
   <!-- Header Superior -->
   <header class="flex justify-between items-center">
@@ -50,7 +50,7 @@
   <section class="grid grid-cols-3 gap-4">
     @if (tabActiva() === 'GASTO') {
       @for (cat of categoriasGasto$ | async; track cat.id) {
-        <div class="glass-card p-4 rounded-2xl flex items-center justify-between border-l-4 hover:border-violet-500/40 transition duration-200" [style.border-left-color]="cat.colorHex">
+        <div class="glass-card p-4 rounded-2xl flex items-center justify-between border-l-4 hover:scale-[1.01] transition-all duration-200 shadow-sm hover:border-violet-500/40" [style.border-left-color]="cat.colorHex">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-sm" [style.background-color]="cat.colorHex + '33'" [style.color]="cat.colorHex">
               ●
@@ -81,7 +81,7 @@
       }
     } @else {
       @for (cat of categoriasIngreso$ | async; track cat.id) {
-        <div class="glass-card p-4 rounded-2xl flex items-center justify-between border-l-4 hover:border-violet-500/40 transition duration-200" [style.border-left-color]="cat.colorHex">
+        <div class="glass-card p-4 rounded-2xl flex items-center justify-between border-l-4 hover:scale-[1.01] transition-all duration-200 shadow-sm hover:border-violet-500/40" [style.border-left-color]="cat.colorHex">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-sm" [style.background-color]="cat.colorHex + '33'" [style.color]="cat.colorHex">
               ●

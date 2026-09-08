@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { IncomeService, IncomeItem, ColumnaSemanal } from '../../../../core/services/income.service';
+import { obtenerMesAnioActual } from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-ingresos',
@@ -15,6 +16,8 @@ import { IncomeService, IncomeItem, ColumnaSemanal } from '../../../../core/serv
 export class IngresosComponent {
   private readonly incomeSvc = inject(IncomeService);
   private readonly fb = inject(FormBuilder);
+
+  readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
 
   // ─── Observables de métricas directas del servicio ──────────
   readonly totalIngresos$: Observable<number> = this.incomeSvc.totalIngresos$;

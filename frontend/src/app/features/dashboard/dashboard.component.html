@@ -1,7 +1,7 @@
-<div class="space-y-5 p-6 overflow-y-auto">
+<div class="space-y-5 p-6 min-h-full pb-20">
 
   <!-- Header Superior -->
-  <header class="glass-card p-4 rounded-2xl flex justify-between items-center">
+  <header class="glass-card p-4 rounded-2xl flex justify-between items-center relative z-20">
     <div>
       <h2 class="text-xl font-bold tracking-tight text-white">Bienvenido de vuelta, {{ userDisplayName }}</h2>
       <p class="text-xs text-slate-400">Aquí tiene el resumen consolidado y sincronizado de sus finanzas personales.</p>
@@ -14,13 +14,86 @@
           placeholder="Buscar transacción..."
           class="bg-slate-900/60 border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-violet-500 transition w-44">
       </div>
-      <div class="glass-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 border border-violet-500/20 flex items-center gap-1.5">
-        <span>Agosto 2026</span>
+
+      <!-- Mes y Año en tiempo real dinámico -->
+      <div class="glass-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 border border-violet-500/30 flex items-center gap-1.5 shadow-sm">
+        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span>{{ mesAnioActual() }}</span>
       </div>
-      <div class="relative glass-card p-2 rounded-xl text-slate-300 cursor-pointer hover:text-white transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-        <span class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white">4</span>
+
+      <!-- Botón de Notificaciones Interactivo con Menú Desplegable -->
+      <div class="relative">
+        <button
+          id="btn-campana-notificaciones"
+          type="button"
+          (click)="toggleDropdownNotif($event)"
+          class="glass-card p-2 rounded-xl text-slate-300 hover:text-white transition cursor-pointer relative hover:border-violet-500/50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+          @if (contadorNoLeidas() > 0) {
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full text-[9px] font-bold flex items-center justify-center text-white shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse">
+              {{ contadorNoLeidas() }}
+            </span>
+          }
+        </button>
+
+        <!-- Dropdown Flotante de Notificaciones -->
+        @if (mostrarDropdownNotif()) {
+          <div
+            id="dropdown-notificaciones"
+            class="absolute right-0 mt-2 w-80 glass-card p-4 rounded-2xl shadow-2xl border border-violet-500/40 z-50 animate-fade-in backdrop-blur-2xl space-y-3"
+            (click)="$event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Centro de Notificaciones</h4>
+                @if (contadorNoLeidas() > 0) {
+                  <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {{ contadorNoLeidas() }} nuevas
+                  </span>
+                }
+              </div>
+              <button
+                type="button"
+                (click)="limpiarTodasNotificaciones($event)"
+                class="text-[10px] text-slate-400 hover:text-rose-400 transition cursor-pointer font-medium">
+                Limpiar todas
+              </button>
+            </div>
+
+            <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              @for (notif of notificaciones(); track notif.id) {
+                <div
+                  class="p-2.5 rounded-xl border transition duration-200 space-y-1 relative"
+                  [ngClass]="notif.leida ? 'bg-slate-900/30 border-slate-800/60 opacity-60' : 'bg-violet-950/25 border-violet-500/30 hover:bg-violet-950/40'">
+                  <div class="flex justify-between items-start">
+                    <span class="font-bold text-[11px]" [ngClass]="notif.leida ? 'text-slate-300' : 'text-violet-300'">
+                      {{ notif.titulo }}
+                    </span>
+                    <span class="text-[9px] text-slate-500">{{ notif.hora }}</span>
+                  </div>
+                  <p class="text-[10px] text-slate-300 leading-relaxed">{{ notif.mensaje }}</p>
+                  @if (!notif.leida) {
+                    <div class="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        (click)="marcarComoLeida(notif.id, $event)"
+                        class="text-[9px] text-emerald-400 hover:text-emerald-300 font-semibold transition cursor-pointer">
+                        Marcar como leída
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (notificaciones().length === 0) {
+                <div class="py-6 text-center text-slate-500 text-xs">
+                  <p>No tiene notificaciones pendientes.</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
+
       @if (userAvatarUrl) {
         <img
           [src]="userAvatarUrl"
@@ -35,12 +108,12 @@
     </div>
   </header>
 
-  <!-- 3. Tarjetas de Resumen Financiero Sincronizadas -->
+  <!-- 3. Tarjetas de Resumen Financiero Sincronizadas (Con Microinteracciones) -->
   <section class="grid grid-cols-4 gap-4">
-    <!-- Balance Total (Reactivo = Ingresos - Gastos) -->
-    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-violet-500/40 transition duration-300">
+    <!-- Balance Total -->
+    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-violet-500/50 hover:scale-[1.01] transition-transform duration-200 cursor-default shadow-md">
       <div class="flex justify-between items-center">
-        <span class="text-xs text-slate-400 font-medium">Balance Total</span>
+        <span class="text-xs text-slate-400 font-medium">Balance Total ({{ activePeriod() }})</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-semibold border border-cyan-500/20">Disponible</span>
       </div>
       <h3 class="text-xl font-bold" [ngClass]="((balanceTotal$ | async) || 0) >= 0 ? 'text-slate-100' : 'text-rose-400'">
@@ -49,28 +122,28 @@
       <p class="text-[10px] text-cyan-400 font-medium">Liquidez neta en tiempo real</p>
     </div>
 
-    <!-- Ingresos del Mes -->
-    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-emerald-500/40 transition duration-300 border-l-4 border-emerald-400">
+    <!-- Ingresos del Período -->
+    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-emerald-500/50 hover:scale-[1.01] transition-transform duration-200 border-l-4 border-emerald-400 cursor-default shadow-md">
       <div class="flex justify-between items-center">
-        <span class="text-xs text-slate-400 font-medium">Ingresos del Mes</span>
+        <span class="text-xs text-slate-400 font-medium">Ingresos ({{ activePeriod() }})</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Entradas</span>
       </div>
       <h3 class="text-xl font-bold text-emerald-400">Q {{ (totalIngresos$ | async) || 0 | number:'1.2-2' }}</h3>
       <p class="text-[10px] text-emerald-400 font-medium">Sincronizado en tiempo real</p>
     </div>
 
-    <!-- Gastos Acumulados -->
-    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-rose-500/40 transition duration-300 border-l-4 border-rose-500">
+    <!-- Gastos Acumulados del Período -->
+    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-rose-500/50 hover:scale-[1.01] transition-transform duration-200 border-l-4 border-rose-500 cursor-default shadow-md">
       <div class="flex justify-between items-center">
-        <span class="text-xs text-slate-400 font-medium">Gastos Acumulados</span>
+        <span class="text-xs text-slate-400 font-medium">Gastos ({{ activePeriod() }})</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-400 font-semibold border border-rose-500/20">Salidas</span>
       </div>
       <h3 class="text-xl font-bold text-rose-400">Q {{ (totalGastos$ | async) || 0 | number:'1.2-2' }}</h3>
       <p class="text-[10px] text-rose-300/80 font-medium">Total debitado en el período</p>
     </div>
 
-    <!-- Fondo de Ahorro -->
-    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-violet-500/40 transition duration-300 border-l-4 border-cyan-400">
+    <!-- Fondo de Ahorro Global -->
+    <div class="glass-card p-4 rounded-2xl space-y-1 hover:border-violet-500/50 hover:scale-[1.01] transition-transform duration-200 border-l-4 border-cyan-400 cursor-default shadow-md">
       <div class="flex justify-between items-center">
         <span class="text-xs text-slate-400 font-medium">Fondo de Ahorro</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-semibold border border-cyan-500/20">Reserva</span>
@@ -80,53 +153,61 @@
     </div>
   </section>
 
-  <!-- 4. Gráficas Principales -->
+  <!-- 4. Gráficas Principales con Filtro Operativo -->
   <section class="grid grid-cols-3 gap-5">
     <div class="col-span-2 glass-card p-5 rounded-2xl space-y-4">
       <div class="flex justify-between items-center">
         <div>
-          <h4 class="font-bold text-sm text-white">Captación Semanal de Fondos</h4>
+          <h4 class="font-bold text-sm text-white">Captación Temporal de Fondos</h4>
           <div class="flex items-center gap-4 text-xs mt-1">
-            <span class="text-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Entradas de Ingresos</span>
+            <span class="text-emerald-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+              Entradas en GTQ (Filtro: {{ activePeriod() }})
+            </span>
           </div>
         </div>
-        <div class="flex glass-card p-1 rounded-xl text-xs">
+
+        <!-- Filtro Operativo de Período -->
+        <div class="flex glass-card p-1 rounded-xl text-xs border border-violet-500/30">
           <button
             type="button"
             (click)="setPeriod('Semana')"
-            [ngClass]="activePeriod() === 'Semana' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
-            class="px-2.5 py-1 transition cursor-pointer">
+            [ngClass]="activePeriod() === 'Semana' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
+            class="px-3 py-1 transition cursor-pointer">
             Semana
           </button>
           <button
             type="button"
             (click)="setPeriod('Mes')"
-            [ngClass]="activePeriod() === 'Mes' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
-            class="px-2.5 py-1 transition cursor-pointer">
+            [ngClass]="activePeriod() === 'Mes' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
+            class="px-3 py-1 transition cursor-pointer">
             Mes
           </button>
           <button
             type="button"
             (click)="setPeriod('Año')"
-            [ngClass]="activePeriod() === 'Año' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
-            class="px-2.5 py-1 transition cursor-pointer">
+            [ngClass]="activePeriod() === 'Año' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
+            class="px-3 py-1 transition cursor-pointer">
             Año
           </button>
         </div>
       </div>
 
-      <!-- Histograma Reactivo en Tiempo Real -->
-      <div class="h-44 flex items-end justify-between gap-4 px-4 pt-4 border-b border-slate-800">
+      <!-- Histograma Reactivo Dinámicamente Adaptado -->
+      <div class="h-48 flex items-end justify-between gap-3 px-4 pt-4 border-b border-slate-800">
         @for (col of (columnasSemanales$ | async); track col.etiqueta) {
-          <div class="flex-1 flex flex-col items-center gap-2 group">
-            <span class="text-[9px] text-emerald-400 font-semibold opacity-0 group-hover:opacity-100 transition duration-200">Q {{ col.monto | number:'1.2-2' }}</span>
-            <div class="w-full bg-slate-800/40 rounded-t-lg h-28 relative overflow-hidden">
+          <div class="flex-1 flex flex-col items-center gap-1.5 group">
+            <span class="text-[9px] text-emerald-400 font-semibold opacity-0 group-hover:opacity-100 transition duration-200 font-mono">
+              Q {{ col.monto | number:'1.0-0' }}
+            </span>
+            <div class="w-full bg-slate-800/40 rounded-t-lg h-32 relative overflow-hidden">
               <div
-                class="absolute bottom-0 w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 rounded-t-lg shadow-lg shadow-emerald-500/20 transition-all duration-500"
+                class="absolute bottom-0 w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 rounded-t-lg shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-all duration-500"
                 [style.height.%]="col.porcentajeAltura">
               </div>
             </div>
-            <span class="text-[10px]" [ngClass]="col.monto > 0 ? 'text-emerald-300 font-bold' : 'text-slate-500'">{{ col.rango }}</span>
+            <span class="text-[10px]" [ngClass]="col.monto > 0 ? 'text-emerald-300 font-bold' : 'text-slate-500'">{{ col.etiqueta }}</span>
+            <span class="text-[9px] text-slate-500">{{ col.rango }}</span>
           </div>
         }
       </div>
@@ -143,18 +224,18 @@
         @for (cat of gastosPorCategoria$ | async; track cat.categoria) {
           <div class="flex justify-between items-center text-slate-300">
             <span>{{ cat.categoria }} ({{ cat.porcentaje }}%)</span>
-            <span class="font-bold text-rose-400">Q {{ cat.total | number:'1.2-2' }}</span>
+            <span class="font-bold text-rose-400 font-mono">Q {{ cat.total | number:'1.2-2' }}</span>
           </div>
         }
         @if ((gastosPorCategoria$ | async)?.length === 0) {
           <div class="py-6 text-center text-slate-500 text-xs">
-            <p>No hay gastos clasificados aún.</p>
+            <p>No hay gastos clasificados en este período.</p>
           </div>
         }
       </div>
 
       <div class="p-2.5 bg-slate-900/40 rounded-xl text-[11px] text-slate-400 text-center border border-slate-800 font-medium">
-        Total Ejecutado: <strong class="text-rose-400 font-bold">Q {{ (totalGastos$ | async) || 0 | number:'1.2-2' }}</strong>
+        Total Ejecutado: <strong class="text-rose-400 font-bold font-mono">Q {{ (totalGastos$ | async) || 0 | number:'1.2-2' }}</strong>
       </div>
     </div>
   </section>
@@ -178,12 +259,12 @@
                 <span class="text-rose-400 font-medium">{{ gasto.categoria }}</span>
               </div>
             </div>
-            <span class="font-bold text-rose-400 text-xs">-Q {{ gasto.monto | number:'1.2-2' }}</span>
+            <span class="font-bold text-rose-400 text-xs font-mono">-Q {{ gasto.monto | number:'1.2-2' }}</span>
           </div>
         }
         @if ((gastosRecientes$ | async)?.length === 0) {
           <div class="py-8 text-center text-slate-500 text-xs">
-            <p>No hay transacciones de gasto registradas.</p>
+            <p>No hay transacciones de gasto en este período.</p>
           </div>
         }
       </div>
@@ -201,7 +282,7 @@
           <div>
             <div class="flex justify-between mb-1">
               <span class="text-slate-300 font-medium">{{ pres.categoria }}</span>
-              <span class="text-[11px]" [ngClass]="pres.estadoColor === 'rose' ? 'text-rose-400 font-bold' : (pres.estadoColor === 'amber' ? 'text-amber-400 font-semibold' : 'text-slate-400')">
+              <span class="text-[11px] font-mono" [ngClass]="pres.estadoColor === 'rose' ? 'text-rose-400 font-bold' : (pres.estadoColor === 'amber' ? 'text-amber-400 font-semibold' : 'text-slate-400')">
                 Q {{ pres.montoEjecutado | number:'1.0-0' }} / Q {{ pres.montoLimite | number:'1.0-0' }} ({{ pres.porcentajeConsumo }}%)
               </span>
             </div>
@@ -209,9 +290,9 @@
               <div
                 class="h-1.5 rounded-full transition-all duration-300"
                 [ngClass]="{
-                  'bg-cyan-400': pres.estadoColor === 'cyan',
-                  'bg-amber-400': pres.estadoColor === 'amber',
-                  'bg-rose-500': pres.estadoColor === 'rose'
+                  'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]': pres.estadoColor === 'cyan',
+                  'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]': pres.estadoColor === 'amber',
+                  'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]': pres.estadoColor === 'rose'
                 }"
                 [style.width.%]="pres.porcentajeConsumo > 100 ? 100 : pres.porcentajeConsumo">
               </div>
@@ -226,11 +307,11 @@
       </div>
     </div>
 
-    <!-- Notificaciones Reactivas Intercaladas -->
+    <!-- Panel de Notificaciones Fijas en Pantalla Principal -->
     <div class="glass-card p-5 rounded-2xl space-y-3">
       <div class="flex justify-between items-center">
-        <h4 class="font-bold text-sm text-white">Notificaciones</h4>
-        <span class="text-xs text-violet-400 font-semibold cursor-pointer hover:text-violet-300 transition">Ver todos</span>
+        <h4 class="font-bold text-sm text-white">Avisos del Sistema</h4>
+        <span class="text-xs text-violet-400 font-semibold">Consolidado</span>
       </div>
       <div class="space-y-2.5 text-xs text-slate-300 max-h-56 overflow-y-auto pr-1">
         @for (notif of notificaciones(); track notif.id; let i = $index) {

@@ -65,12 +65,13 @@ export class IncomeService {
   /** Histograma de captación semanal recalculado automáticamente */
   readonly columnasSemanales$: Observable<ColumnaSemanal[]> = this.ingresos$.pipe(
     map((lista) => {
+      const mesAbrev = new Date().toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
       const semanas = [
-        { rango: '1 - 7 Ago', etiqueta: 'Semana 1', start: 1, end: 7, monto: 0 },
-        { rango: '8 - 14 Ago', etiqueta: 'Semana 2', start: 8, end: 14, monto: 0 },
-        { rango: '15 - 21 Ago', etiqueta: 'Semana 3', start: 15, end: 21, monto: 0 },
-        { rango: '22 - 28 Ago', etiqueta: 'Semana 4', start: 22, end: 28, monto: 0 },
-        { rango: '29 - 31 Ago', etiqueta: 'Semana 5', start: 29, end: 31, monto: 0 },
+        { rango: `1 - 7 ${mesAbrev}`, etiqueta: 'Semana 1', start: 1, end: 7, monto: 0 },
+        { rango: `8 - 14 ${mesAbrev}`, etiqueta: 'Semana 2', start: 8, end: 14, monto: 0 },
+        { rango: `15 - 21 ${mesAbrev}`, etiqueta: 'Semana 3', start: 15, end: 21, monto: 0 },
+        { rango: `22 - 28 ${mesAbrev}`, etiqueta: 'Semana 4', start: 22, end: 28, monto: 0 },
+        { rango: `29 - 31 ${mesAbrev}`, etiqueta: 'Semana 5', start: 29, end: 31, monto: 0 },
       ];
 
       lista.forEach((item) => {

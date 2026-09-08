@@ -1,4 +1,4 @@
-<div class="space-y-5 p-6 overflow-y-auto">
+<div class="space-y-5 p-6 min-h-full pb-20">
 
   <!-- Header Superior -->
   <header class="flex justify-between items-center">
@@ -8,26 +8,26 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <!-- Selector de Período -->
-      <div class="flex glass-card p-1 rounded-xl text-xs">
+      <!-- Selector de Período Operativo -->
+      <div class="flex glass-card p-1 rounded-xl text-xs border border-violet-500/30">
         <button
           type="button"
           (click)="setPeriodo('Semanal')"
-          [ngClass]="periodoSeleccionado() === 'Semanal' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
+          [ngClass]="periodoSeleccionado() === 'Semanal' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
           class="px-3 py-1 transition cursor-pointer">
           Semanal
         </button>
         <button
           type="button"
           (click)="setPeriodo('Mensual')"
-          [ngClass]="periodoSeleccionado() === 'Mensual' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
+          [ngClass]="periodoSeleccionado() === 'Mensual' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
           class="px-3 py-1 transition cursor-pointer">
           Mensual
         </button>
         <button
           type="button"
           (click)="setPeriodo('Anual')"
-          [ngClass]="periodoSeleccionado() === 'Anual' ? 'bg-violet-600/40 text-violet-300 rounded-lg font-bold border border-violet-500/30' : 'text-slate-400 hover:text-white'"
+          [ngClass]="periodoSeleccionado() === 'Anual' ? 'bg-violet-600/50 text-violet-200 rounded-lg font-bold border border-violet-400/50 shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white'"
           class="px-3 py-1 transition cursor-pointer">
           Anual
         </button>
@@ -49,40 +49,40 @@
   @if (metricas$ | async; as m) {
     <section class="grid grid-cols-4 gap-4">
       <!-- Balance Neto -->
-      <div class="glass-card p-4 rounded-2xl border-l-4 space-y-1.5" [ngClass]="m.balanceNeto >= 0 ? 'border-emerald-400' : 'border-rose-500'">
+      <div class="glass-card p-4 rounded-2xl border-l-4 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md" [ngClass]="m.balanceNeto >= 0 ? 'border-emerald-400' : 'border-rose-500'">
         <div class="flex justify-between items-center">
-          <span class="text-xs font-semibold text-slate-300">Balance Neto</span>
+          <span class="text-xs font-semibold text-slate-300">Balance Neto ({{ periodoSeleccionado() }})</span>
           <span class="px-2 py-0.5 rounded text-[10px] font-bold" [ngClass]="m.balanceNeto >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'">
             {{ m.balanceNeto >= 0 ? 'Superávit' : 'Déficit' }}
           </span>
         </div>
-        <p class="text-xl font-bold" [ngClass]="m.balanceNeto >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+        <p class="text-xl font-bold font-mono" [ngClass]="m.balanceNeto >= 0 ? 'text-emerald-400' : 'text-rose-400'">
           Q {{ m.balanceNeto | number:'1.2-2' }}
         </p>
         <p class="text-[11px] text-slate-400">Ingresos Totales menos Gastos Totales.</p>
       </div>
 
       <!-- Tasa de Ahorro -->
-      <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1.5">
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md">
         <div class="flex justify-between items-center">
           <span class="text-xs font-semibold text-slate-300">Tasa de Ahorro Neta</span>
           <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-bold">{{ m.indiceEficiencia }}</span>
         </div>
-        <p class="text-xl font-bold text-cyan-400">{{ m.tasaAhorro }}%</p>
+        <p class="text-xl font-bold text-cyan-400 font-mono">{{ m.tasaAhorro }}%</p>
         <p class="text-[11px] text-slate-400">Porcentaje de fondos retenidos.</p>
       </div>
 
       <!-- Total Captado -->
-      <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1.5">
-        <span class="text-xs font-semibold text-slate-300">Total Ingresos Recibidos</span>
-        <p class="text-xl font-bold text-slate-100">Q {{ m.totalIngresos | number:'1.2-2' }}</p>
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md">
+        <span class="text-xs font-semibold text-slate-300">Total Ingresos ({{ periodoSeleccionado() }})</span>
+        <p class="text-xl font-bold text-slate-100 font-mono">Q {{ m.totalIngresos | number:'1.2-2' }}</p>
         <p class="text-[11px] text-slate-400">Entradas consolidadas en el ciclo.</p>
       </div>
 
       <!-- Total Egresos -->
-      <div class="glass-card p-4 rounded-2xl border-l-4 border-rose-500 space-y-1.5">
-        <span class="text-xs font-semibold text-slate-300">Total Gastos Efectuados</span>
-        <p class="text-xl font-bold text-slate-100">Q {{ m.totalGastos | number:'1.2-2' }}</p>
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-rose-500 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md">
+        <span class="text-xs font-semibold text-slate-300">Total Gastos ({{ periodoSeleccionado() }})</span>
+        <p class="text-xl font-bold text-slate-100 font-mono">Q {{ m.totalGastos | number:'1.2-2' }}</p>
         <p class="text-[11px] text-slate-400">Salidas acumuladas registradas.</p>
       </div>
     </section>
