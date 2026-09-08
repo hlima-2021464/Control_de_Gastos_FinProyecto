@@ -30,13 +30,13 @@
   <section class="grid grid-cols-3 gap-4">
     <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Techo Presupuestado Total</span>
-      <p class="text-xl font-bold text-slate-100 font-mono">Q {{ (totalPresupuestado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (totalPresupuestado$ | async) || 0 | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Límite financiero mensual combinado.</p>
     </div>
 
     <div class="glass-card p-4 rounded-2xl border-l-4 border-amber-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Gasto Ejecutado en Rubros</span>
-      <p class="text-xl font-bold text-slate-100 font-mono">Q {{ (totalEjecutado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (totalEjecutado$ | async) || 0 | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Total debitado sobre categorías asignadas.</p>
     </div>
 
@@ -45,15 +45,15 @@
       @if (totalPresupuestado$ | async; as pres) {
         @if (totalEjecutado$ | async; as ejec) {
           <p class="text-xl font-bold font-mono" [ngClass]="(pres - ejec) >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-            Q {{ (pres - ejec) | number:'1.2-2' }}
+            {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres - ejec) | number:'1.2-2' }}
           </p>
           <p class="text-[11px] text-slate-400">Margen operativo restante en el ciclo.</p>
         } @else {
-          <p class="text-xl font-bold text-emerald-400 font-mono">Q {{ pres | number:'1.2-2' }}</p>
+          <p class="text-xl font-bold text-emerald-400 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ pres | number:'1.2-2' }}</p>
           <p class="text-[11px] text-slate-400">100% disponible.</p>
         }
       } @else {
-        <p class="text-xl font-bold text-slate-400 font-mono">Q 0.00</p>
+        <p class="text-xl font-bold text-slate-400 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 0.00</p>
         <p class="text-[11px] text-slate-500">Sin presupuestos asignados.</p>
       }
     </div>
@@ -99,8 +99,8 @@
               </span>
             </div>
             <p class="text-xs text-slate-400 mt-1">
-              Consumo: <strong class="text-white font-mono">Q {{ item.montoEjecutado | number:'1.2-2' }}</strong> de
-              <span class="text-slate-300 font-semibold font-mono">Q {{ item.montoLimite | number:'1.2-2' }}</span>
+              Consumo: <strong class="text-white font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.montoEjecutado | number:'1.2-2' }}</strong> de
+              <span class="text-slate-300 font-semibold font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.montoLimite | number:'1.2-2' }}</span>
             </p>
           </div>
 
@@ -137,7 +137,7 @@
           </div>
           <div class="flex justify-between text-[11px] text-slate-400 font-mono">
             <span>Ejecutado: <strong class="text-slate-200">{{ item.porcentajeConsumo }}%</strong></span>
-            <span>Disponible: <strong class="text-slate-200">Q {{ item.restante | number:'1.2-2' }}</strong></span>
+            <span>Disponible: <strong class="text-slate-200">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.restante | number:'1.2-2' }}</strong></span>
           </div>
         </div>
 

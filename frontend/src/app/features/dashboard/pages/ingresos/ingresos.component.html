@@ -36,7 +36,7 @@
     <!-- Contenedor de Columnas Dinámicas -->
     <div class="h-56 flex items-end justify-between gap-6 px-8 pt-4 pb-2 border-b border-slate-800/80">
       <div *ngFor="let col of columnasSemanales$ | async" class="flex-1 h-full flex flex-col justify-end items-center group cursor-pointer">
-        <span class="text-[11px] text-emerald-300 font-bold mb-2 transition">Q {{ col.monto | number:'1.2-2' }}</span>
+        <span class="text-[11px] text-emerald-300 font-bold mb-2 transition font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ col.monto | number:'1.2-2' }}</span>
         <div class="w-full bg-slate-800/40 rounded-t-xl h-28 relative overflow-hidden">
           <div class="absolute bottom-0 w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 rounded-t-xl bar-glow transition-all duration-300" [style.height.%]="col.porcentajeAltura"></div>
         </div>
@@ -46,8 +46,8 @@
     </div>
 
     <div class="flex justify-between items-center text-xs pt-1 px-2 text-slate-400">
-      <span>Promedio por Ciclo: <strong class="text-slate-200">Q {{ promedioSemanal$ | async | number:'1.2-2' }}</strong></span>
-      <span>Total Percibido en el Mes: <strong class="text-emerald-400 font-bold text-sm">Q {{ totalIngresos$ | async | number:'1.2-2' }}</strong></span>
+      <span>Promedio por Ciclo: <strong class="text-slate-200 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ promedioSemanal$ | async | number:'1.2-2' }}</strong></span>
+      <span>Total Percibido en el Mes: <strong class="text-emerald-400 font-bold text-sm font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ totalIngresos$ | async | number:'1.2-2' }}</strong></span>
     </div>
   </section>
 
@@ -58,7 +58,7 @@
         <span class="text-xs font-semibold text-slate-300">Nómina Fija</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
       </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalNomina$ | async | number:'1.2-2' }}</p>
+      <p class="text-lg font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ totalNomina$ | async | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Depósitos de salario registrados.</p>
     </div>
 
@@ -67,7 +67,7 @@
         <span class="text-xs font-semibold text-slate-300">Desarrollo Web & Cloud</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
       </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalDesarrollo$ | async | number:'1.2-2' }}</p>
+      <p class="text-lg font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ totalDesarrollo$ | async | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Servicios e infraestructura.</p>
     </div>
 
@@ -76,7 +76,7 @@
         <span class="text-xs font-semibold text-slate-300">Consultorías de Sistemas</span>
         <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
       </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalConsultoria$ | async | number:'1.2-2' }}</p>
+      <p class="text-lg font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ totalConsultoria$ | async | number:'1.2-2' }}</p>
       <p class="text-[11px] text-slate-400">Auditorías técnicas y asesorías.</p>
     </div>
   </section>
@@ -113,7 +113,7 @@
               <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">{{ item.fuente }}</span>
             </td>
             <td class="p-3.5 text-slate-400">{{ item.cuentaDestino }}</td>
-            <td class="p-3.5 font-bold text-emerald-400">+Q {{ item.monto | number:'1.2-2' }}</td>
+            <td class="p-3.5 font-bold text-emerald-400 font-mono">+{{ (simboloMoneda$ | async) || 'Q' }} {{ item.monto | number:'1.2-2' }}</td>
             <td class="p-3.5 text-center space-x-2">
               <button (click)="editarIngreso(item)" class="hover:text-violet-400 cursor-pointer font-medium">Editar</button>
               <button (click)="eliminarIngreso(item.id)" class="hover:text-rose-400 cursor-pointer font-medium">Eliminar</button>

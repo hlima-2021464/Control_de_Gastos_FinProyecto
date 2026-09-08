@@ -5,6 +5,7 @@ import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ExpenseService, ExpenseItem } from '../../../../core/services/expense.service';
 import { CategoryService, CategoryItem } from '../../../../core/services/category.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { obtenerMesAnioActual, obtenerFechaHoyISO } from '../../../../core/utils/date.utils';
 
 @Component({
@@ -17,9 +18,12 @@ import { obtenerMesAnioActual, obtenerFechaHoyISO } from '../../../../core/utils
 export class GastosComponent {
   private readonly expenseSvc = inject(ExpenseService);
   private readonly categorySvc = inject(CategoryService);
+  private readonly settingsSvc = inject(SettingsService);
   private readonly fb = inject(FormBuilder);
 
   readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
+  readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
+
 
   // ─── Flujos de métricas ──────────────────────────────────────
   readonly totalGastos$: Observable<number> = this.expenseSvc.totalGastos$;

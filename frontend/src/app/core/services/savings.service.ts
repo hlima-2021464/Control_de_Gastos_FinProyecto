@@ -141,4 +141,16 @@ export class SavingsService {
       // No-op
     }
   }
+
+  /** Restaura la lista completa de metas de ahorro (p. ej. desde un respaldo JSON) */
+  restaurarMetas(items: SavingGoal[]): void {
+    const limpios = (items || []).map((item) => ({
+      ...item,
+      montoActual: Number(item.montoActual) || 0,
+      montoObjetivo: Number(item.montoObjetivo) || 0,
+    }));
+    this.metasSubject.next(limpios);
+    this.persistirEstado(limpios);
+  }
 }
+

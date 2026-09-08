@@ -164,4 +164,15 @@ export class BudgetService {
     this.presupuestosSubject.next([...PRESUPUESTOS_POR_DEFECTO]);
     this.persistirEstado(PRESUPUESTOS_POR_DEFECTO);
   }
+
+  /** Restaura la lista completa de presupuestos (p. ej. desde un respaldo JSON) */
+  restaurarPresupuestos(items: BudgetItem[]): void {
+    const limpios = (items || []).map((item) => ({
+      ...item,
+      montoLimite: Number(item.montoLimite) || 0,
+    }));
+    this.presupuestosSubject.next(limpios);
+    this.persistirEstado(limpios);
+  }
 }
+

@@ -57,7 +57,7 @@
           </span>
         </div>
         <p class="text-xl font-bold font-mono" [ngClass]="m.balanceNeto >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-          Q {{ m.balanceNeto | number:'1.2-2' }}
+          {{ (simboloMoneda$ | async) || 'Q' }} {{ m.balanceNeto | number:'1.2-2' }}
         </p>
         <p class="text-[11px] text-slate-400">Ingresos Totales menos Gastos Totales.</p>
       </div>
@@ -75,14 +75,14 @@
       <!-- Total Captado -->
       <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md">
         <span class="text-xs font-semibold text-slate-300">Total Ingresos ({{ periodoSeleccionado() }})</span>
-        <p class="text-xl font-bold text-slate-100 font-mono">Q {{ m.totalIngresos | number:'1.2-2' }}</p>
+        <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ m.totalIngresos | number:'1.2-2' }}</p>
         <p class="text-[11px] text-slate-400">Entradas consolidadas en el ciclo.</p>
       </div>
 
       <!-- Total Egresos -->
       <div class="glass-card p-4 rounded-2xl border-l-4 border-rose-500 space-y-1.5 hover:scale-[1.01] transition-transform duration-200 shadow-md">
         <span class="text-xs font-semibold text-slate-300">Total Gastos ({{ periodoSeleccionado() }})</span>
-        <p class="text-xl font-bold text-slate-100 font-mono">Q {{ m.totalGastos | number:'1.2-2' }}</p>
+        <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ m.totalGastos | number:'1.2-2' }}</p>
         <p class="text-[11px] text-slate-400">Salidas acumuladas registradas.</p>
       </div>
     </section>
@@ -113,10 +113,10 @@
       @for (bloque of barrasComparativas$ | async; track bloque.etiqueta) {
         <div class="flex-1 h-full flex flex-col justify-end items-center group">
           <!-- Valores en tooltip superior -->
-          <div class="flex gap-2 text-[10px] font-bold mb-2 opacity-80 group-hover:opacity-100 transition">
-            <span class="text-emerald-300">Q {{ bloque.ingresos | number:'1.0-0' }}</span>
+          <div class="flex gap-2 text-[10px] font-bold mb-2 opacity-80 group-hover:opacity-100 transition font-mono">
+            <span class="text-emerald-300">{{ (simboloMoneda$ | async) || 'Q' }} {{ bloque.ingresos | number:'1.0-0' }}</span>
             <span class="text-slate-500">/</span>
-            <span class="text-rose-300">Q {{ bloque.gastos | number:'1.0-0' }}</span>
+            <span class="text-rose-300">{{ (simboloMoneda$ | async) || 'Q' }} {{ bloque.gastos | number:'1.0-0' }}</span>
           </div>
 
           <!-- Par de Columnas -->

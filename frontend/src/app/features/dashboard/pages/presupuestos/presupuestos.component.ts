@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { Observable } from 'rxjs';
 import { BudgetService, BudgetProgress } from '../../../../core/services/budget.service';
 import { CategoryService, CategoryItem } from '../../../../core/services/category.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 
 @Component({
   selector: 'app-presupuestos',
@@ -15,12 +16,15 @@ import { CategoryService, CategoryItem } from '../../../../core/services/categor
 export class PresupuestosComponent {
   private readonly budgetSvc = inject(BudgetService);
   private readonly categorySvc = inject(CategoryService);
+  private readonly settingsSvc = inject(SettingsService);
   private readonly fb = inject(FormBuilder);
 
   readonly presupuestos$: Observable<BudgetProgress[]> = this.budgetSvc.presupuestosConProgreso$;
   readonly totalPresupuestado$: Observable<number> = this.budgetSvc.totalPresupuestado$;
   readonly totalEjecutado$: Observable<number> = this.budgetSvc.totalEjecutado$;
   readonly categoriasGasto$: Observable<CategoryItem[]> = this.categorySvc.categoriasGasto$;
+  readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
+
 
   // ─── Modal de Ajuste de Límite / Nuevo Presupuesto ───────────
   readonly mostrarModal = signal<boolean>(false);

@@ -157,4 +157,15 @@ export class ExpenseService {
       // No-op
     }
   }
+
+  /** Restaura la lista completa de gastos (p. ej. desde un respaldo JSON) */
+  restaurarGastos(items: ExpenseItem[]): void {
+    const limpios = (items || []).map((item) => ({
+      ...item,
+      monto: Number(item.monto) || 0,
+    }));
+    this.gastosSubject.next(limpios);
+    this.persistirEstado(limpios);
+  }
 }
+

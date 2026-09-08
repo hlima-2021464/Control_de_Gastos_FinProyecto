@@ -2,8 +2,9 @@ import { Injectable, NgZone, inject, OnDestroy, effect } from '@angular/core';
 import { fromEvent, merge, Subscription } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { SettingsService } from './settings.service';
 
-/** Tiempo límite de inactividad total: 15 minutos (en milisegundos) */
+/** Tiempo límite de inactividad total: 15 minutos (en milisegundos) por defecto */
 export const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 /** Intervalo para renovar el token en el backend durante interacción continua: 60 segundos */
@@ -11,13 +12,15 @@ export const REFRESH_THROTTLE_MS = 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class IdleService implements OnDestroy {
-  private readonly ngZone      = inject(NgZone);
-  private readonly authService = inject(AuthService);
+  private readonly ngZone          = inject(NgZone);
+  private readonly authService     = inject(AuthService);
+  private readonly settingsService = inject(SettingsService);
 
   private idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private activitySubscription: Subscription | null = null;
   private refreshSubscription: Subscription | null = null;
+  private settingsSubscription: Subscription | null = null;
   private isRunning = false;
 
   private readonly events: (keyof WindowEventMap)[] = [
@@ -29,18 +32,38 @@ export class IdleService implements OnDestroy {
   ];
 
   constructor() {
+    // Sincronización reactiva del temporizador según la configuración del usuario
+    this.settingsSubscription = this.settingsService.tiempoInactividadMin$.subscribe((min) => {
+      this.idleTimeoutMs = (Number(min) || 15) * 60 * 1000;
+      if (this.isRunning) {
+        this.resetTimer();
+      }
+    });
+
     // Escucha reactiva: activa o desactiva la vigilancia según el estado de la sesión
     effect(() => {
       const user = this.authService.currentUser();
       const expired = this.authService.sessionExpired();
 
       if (user && !expired) {
-        this.start();
+        const timeout = (this.settingsService.snapshot.tiempoInactividadMin || 15) * 60 * 1000;
+        this.start(timeout);
       } else {
         this.stop();
       }
     });
   }
+
+  /** Retorna los minutos configurados actuales */
+  get timeoutMinutes(): number {
+    return Math.round(this.idleTimeoutMs / (60 * 1000));
+  }
+
+  /** Permite ajustar los minutos directamente delegando en SettingsService */
+  setIdleTimeoutMinutes(minutes: number): void {
+    this.settingsService.actualizarTiempoInactividad(minutes);
+  }
+
 
   /**
    * Configura e inicia la vigilancia de inactividad del usuario.
@@ -134,5 +157,10 @@ export class IdleService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stop();
+    if (this.settingsSubscription) {
+      this.settingsSubscription.unsubscribe();
+      this.settingsSubscription = null;
+    }
   }
 }
+

@@ -148,4 +148,13 @@ export class CategoryService {
     this.categoriasSubject.next([...CATEGORIAS_POR_DEFECTO]);
     this.persistirEstado(CATEGORIAS_POR_DEFECTO);
   }
+
+  /** Restaura la lista completa de categorías (p. ej. desde un respaldo JSON) */
+  restaurarCategorias(items: CategoryItem[]): void {
+    if (items && items.length > 0) {
+      this.categoriasSubject.next([...items]);
+      this.persistirEstado(items);
+    }
+  }
 }
+

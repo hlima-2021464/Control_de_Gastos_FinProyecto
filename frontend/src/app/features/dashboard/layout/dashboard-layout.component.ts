@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
-import { Router } from '@angular/router';
+import { SettingsService } from '../../../core/services/settings.service';
 
 interface NavItem {
   id: string;
@@ -20,9 +21,11 @@ interface NavItem {
 })
 export class DashboardLayoutComponent {
   private readonly authSvc = inject(AuthService);
+  private readonly settingsSvc = inject(SettingsService);
   private readonly router = inject(Router);
 
   readonly currentUser = this.authSvc.currentUser;
+  readonly settings = toSignal(this.settingsSvc.settings$, { initialValue: this.settingsSvc.snapshot });
   readonly logoError = signal(false);
 
   readonly navItems: NavItem[] = [
@@ -86,13 +89,23 @@ export class DashboardLayoutComponent {
   }
 
   get userDisplayName(): string {
+    const custom = this.settings()?.perfilVisual?.nombreVisualizacion?.trim();
+    if (custom) return custom;
     const user = this.currentUser();
     return user?.name || user?.username || user?.email || 'Usuario';
   }
 
   get userAvatarUrl(): string | null {
+    const perfil = this.settings()?.perfilVisual;
+    if (perfil?.tipoAvatar === 'iniciales') {
+      return null;
+    }
     const user = this.currentUser();
     return user?.picture || user?.avatarUrl || null;
+  }
+
+  get avatarGradientClass(): string {
+    return this.settings()?.perfilVisual?.fondoGradiente || 'from-violet-600 to-cyan-400';
   }
 
   get userInitial(): string {
@@ -100,3 +113,4 @@ export class DashboardLayoutComponent {
     return (name && name.length > 0) ? name.charAt(0).toUpperCase() : 'U';
   }
 }
+

@@ -182,4 +182,15 @@ export class IncomeService {
     this.ingresosSubject.next([]);
     localStorage.removeItem(STORAGE_KEY);
   }
+
+  /** Restaura la lista completa de ingresos (p. ej. desde un respaldo JSON) */
+  restaurarIngresos(items: IncomeItem[]): void {
+    const limpios = (items || []).map((item) => ({
+      ...item,
+      monto: Number(item.monto) || 0,
+    }));
+    this.ingresosSubject.next(limpios);
+    this.persistirEstado(limpios);
+  }
 }
+

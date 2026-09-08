@@ -37,7 +37,29 @@ export class AuthService {
   /** Controla la visibilidad del modal de sesión expirada */
   readonly sessionExpired = signal<boolean>(false);
 
+  /** Marca de tiempo de la última emisión o renovación de token */
+  readonly ultimoTokenRenovado = signal<string>(
+    new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  /** Identifica la modalidad de autenticación activa */
+  get tipoAutenticacion(): string {
+    const token = this.getToken();
+    const user = this.currentUser();
+    if (!token || !user) {
+      return 'Sesión Inactiva';
+    }
+    if (token.includes('google_session_signature') || token.includes('google_mock_signature')) {
+      return 'Google OAuth 2.0 GIS (Sesión Sintética)';
+    }
+    if (user.picture && (user.picture.includes('googleusercontent.com') || user.picture.includes('ui-avatars.com'))) {
+      return 'Google Identity Services (GIS OAuth 2.0)';
+    }
+    return 'Autenticación Local (JWT Estándar)';
+  }
+
   constructor(private readonly http: HttpClient) {}
+
 
   // ─── Login Estándar ─────────────────────────────────────────
   login(credentials: LoginRequest): Observable<AuthSuccessResponse> {
@@ -134,6 +156,9 @@ export class AuthService {
         const payloadStr = btoa(JSON.stringify(payload));
         const updatedToken = `${header}.${payloadStr}.google_session_signature`;
         localStorage.setItem(TOKEN_KEY, updatedToken);
+        this.ultimoTokenRenovado.set(
+          new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
       }
       return;
     }
@@ -145,6 +170,9 @@ export class AuthService {
         tap((response) => {
           if (response?.data?.token) {
             localStorage.setItem(TOKEN_KEY, response.data.token);
+            this.ultimoTokenRenovado.set(
+              new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            );
           }
         }),
         catchError(() => of(null))
@@ -185,7 +213,11 @@ export class AuthService {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.currentUser.set(user);
     this.sessionExpired.set(false);
+    this.ultimoTokenRenovado.set(
+      new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    );
   }
+
 
   private loadUser(): UserProfile | null {
     try {

@@ -4,6 +4,7 @@ import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { IncomeService } from '../../../../core/services/income.service';
 import { ExpenseService } from '../../../../core/services/expense.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 
 export interface ComparativoPeriodo {
   etiqueta: string;
@@ -33,9 +34,12 @@ export interface MetricasAnaliticas {
 export class ReportesComponent {
   private readonly incomeSvc = inject(IncomeService);
   private readonly expenseSvc = inject(ExpenseService);
+  private readonly settingsSvc = inject(SettingsService);
 
+  readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
   readonly periodoSeleccionado = signal<'Semanal' | 'Mensual' | 'Anual'>('Mensual');
   private readonly periodoSubject = new BehaviorSubject<'Semanal' | 'Mensual' | 'Anual'>('Mensual');
+
 
   // ─── Transacciones Filtradas según el Período Activo ─────────
   private readonly transaccionesFiltradas$ = combineLatest([

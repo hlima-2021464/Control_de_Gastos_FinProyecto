@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SavingsService, SavingGoal } from '../../../../core/services/savings.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { obtenerFechaHoyISO } from '../../../../core/utils/date.utils';
 
 @Component({
@@ -14,12 +15,15 @@ import { obtenerFechaHoyISO } from '../../../../core/utils/date.utils';
 })
 export class AhorroComponent {
   private readonly savingsSvc = inject(SavingsService);
+  private readonly settingsSvc = inject(SettingsService);
   private readonly fb = inject(FormBuilder);
 
   readonly metas$: Observable<SavingGoal[]> = this.savingsSvc.metas$;
   readonly totalAhorrado$: Observable<number> = this.savingsSvc.totalAhorrado$;
   readonly totalObjetivo$: Observable<number> = this.savingsSvc.totalObjetivo$;
   readonly porcentajeCumplimientoGlobal$: Observable<number> = this.savingsSvc.porcentajeCumplimientoGlobal$;
+  readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
+
 
   // ─── Modal Meta (Crear / Editar) ─────────────────────────────
   readonly mostrarModalMeta = signal<boolean>(false);

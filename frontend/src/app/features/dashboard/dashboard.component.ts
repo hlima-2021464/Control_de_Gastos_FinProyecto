@@ -10,6 +10,9 @@ import { BudgetService, BudgetProgress } from '../../core/services/budget.servic
 import { SavingsService } from '../../core/services/savings.service';
 import { obtenerMesAnioActual } from '../../core/utils/date.utils';
 
+import { SettingsService } from '../../core/services/settings.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+
 export interface AppNotification {
   id: string;
   titulo: string;
@@ -38,10 +41,24 @@ export class DashboardComponent {
   private readonly expenseSvc = inject(ExpenseService);
   private readonly budgetSvc = inject(BudgetService);
   private readonly savingsSvc = inject(SavingsService);
+  private readonly settingsSvc = inject(SettingsService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef);
 
   readonly currentUser = this.authSvc.currentUser;
+  readonly settings = toSignal(this.settingsSvc.settings$, { initialValue: this.settingsSvc.snapshot });
+
+  /** Símbolo monetario dinámico ('Q', '$', '€') */
+  readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
+
+  /** Código ISO de moneda ('GTQ', 'USD', 'EUR') */
+  readonly codigoMoneda$: Observable<string> = this.settingsSvc.moneda$.pipe(map((m) => m.codigo));
+
+  /** Regla de visibilidad de notificaciones */
+  readonly notificacionesActivas$: Observable<boolean> = this.settingsSvc.notificaciones$.pipe(
+    map((n) => n.visualesActivas)
+  );
+
 
   // ─── Fechas en tiempo real dinámicas ─────────────────────────
   readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
@@ -321,17 +338,28 @@ export class DashboardComponent {
   }
 
   get userDisplayName(): string {
+    const custom = this.settings()?.perfilVisual?.nombreVisualizacion?.trim();
+    if (custom) return custom;
     const user = this.currentUser();
     return user?.name || user?.username || user?.email || 'Usuario';
   }
 
   get userAvatarUrl(): string | null {
+    const perfil = this.settings()?.perfilVisual;
+    if (perfil?.tipoAvatar === 'iniciales') {
+      return null;
+    }
     const user = this.currentUser();
     return user?.picture || user?.avatarUrl || null;
+  }
+
+  get avatarGradientClass(): string {
+    return this.settings()?.perfilVisual?.fondoGradiente || 'from-violet-600 to-cyan-400';
   }
 
   get userInitial(): string {
     const name = this.userDisplayName;
     return name && name.length > 0 ? name.charAt(0).toUpperCase() : 'U';
   }
+
 }
