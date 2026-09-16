@@ -25,7 +25,6 @@ describe('IncomeService', () => {
       monto: 5000,
       fecha: '2026-08-10',
       fuente: 'Desarrollo Web',
-      cuentaDestino: 'Cuenta de Ahorros BI',
     });
 
     const total = await firstValueFrom(service.totalIngresos$);
@@ -38,7 +37,6 @@ describe('IncomeService', () => {
       monto: 4000,
       fecha: '2026-08-05',
       fuente: 'Nómina Fija',
-      cuentaDestino: 'BAM Nómina',
     });
 
     service.agregarIngreso({
@@ -46,7 +44,6 @@ describe('IncomeService', () => {
       monto: 2500,
       fecha: '2026-08-20',
       fuente: 'Consultoría',
-      cuentaDestino: 'Cuenta Monetaria BAC',
     });
 
     const nomina = await firstValueFrom(service.totalNomina$);
@@ -61,7 +58,6 @@ describe('IncomeService', () => {
       monto: 1200,
       fecha: '2026-08-12',
       fuente: 'Nómina Fija',
-      cuentaDestino: 'Efectivo',
     });
 
     expect(service.snapshot.length).toBe(1);

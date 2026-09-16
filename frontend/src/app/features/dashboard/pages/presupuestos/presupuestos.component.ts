@@ -5,11 +5,12 @@ import { Observable } from 'rxjs';
 import { BudgetService, BudgetProgress } from '../../../../core/services/budget.service';
 import { CategoryService, CategoryItem } from '../../../../core/services/category.service';
 import { SettingsService } from '../../../../core/services/settings.service';
+import { CurrencyConversionPipe } from '../../../../core/pipes/currency-conversion.pipe';
 
 @Component({
   selector: 'app-presupuestos',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyConversionPipe],
   templateUrl: './presupuestos.component.html',
   styleUrls: ['./presupuestos.component.css'],
 })
@@ -25,7 +26,6 @@ export class PresupuestosComponent {
   readonly categoriasGasto$: Observable<CategoryItem[]> = this.categorySvc.categoriasGasto$;
   readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
 
-
   // ─── Modal de Ajuste de Límite / Nuevo Presupuesto ───────────
   readonly mostrarModal = signal<boolean>(false);
   readonly modoEdicion = signal<boolean>(false);
@@ -33,7 +33,7 @@ export class PresupuestosComponent {
 
   readonly presupuestoForm: FormGroup = this.fb.group({
     categoria: ['', [Validators.required]],
-    montoLimite: [null, [Validators.required, Validators.min(1)]],
+    montoLimite: [null, [Validators.required, Validators.min(0.01)]],
     periodo: ['Mensual', [Validators.required]],
   });
 
@@ -51,9 +51,12 @@ export class PresupuestosComponent {
   abrirModalEditar(item: BudgetProgress): void {
     this.modoEdicion.set(true);
     this.presupuestoEditandoId.set(item.id);
+
+    const montoLimiteConvertido = Number(this.settingsSvc.convertirDesdeGTQ(item.montoLimite).toFixed(2));
+
     this.presupuestoForm.patchValue({
       categoria: item.categoria,
-      montoLimite: item.montoLimite,
+      montoLimite: montoLimiteConvertido,
       periodo: item.periodo,
     });
     this.mostrarModal.set(true);
@@ -86,13 +89,14 @@ export class PresupuestosComponent {
 
     const formVal = this.presupuestoForm.value;
     const limiteNum = Number(formVal.montoLimite);
+    const limiteBaseGTQ = Number(this.settingsSvc.convertirHaciaGTQ(limiteNum).toFixed(2));
 
     if (this.modoEdicion() && this.presupuestoEditandoId()) {
-      this.budgetSvc.actualizarLimite(this.presupuestoEditandoId()!, limiteNum);
+      this.budgetSvc.actualizarLimite(this.presupuestoEditandoId()!, limiteBaseGTQ);
     } else {
       this.budgetSvc.agregarPresupuesto({
         categoria: formVal.categoria,
-        montoLimite: limiteNum,
+        montoLimite: limiteBaseGTQ,
         periodo: formVal.periodo,
       });
     }

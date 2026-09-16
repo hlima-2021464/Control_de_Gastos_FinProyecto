@@ -7,7 +7,6 @@ export interface IncomeItem {
   fecha: string; // Formato YYYY-MM-DD
   concepto: string;
   fuente: 'Nómina Fija' | 'Desarrollo Web' | 'Consultoría' | string;
-  cuentaDestino: string;
   monto: number;
 }
 

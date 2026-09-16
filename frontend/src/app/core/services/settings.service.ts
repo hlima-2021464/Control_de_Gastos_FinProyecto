@@ -38,6 +38,17 @@ export const MONEDAS_DISPONIBLES: Record<'GTQ' | 'USD' | 'EUR', MonedaConfig> = 
   EUR: { codigo: 'EUR', simbolo: '€', nombre: 'Euros' },
 };
 
+/**
+ * Tasas de conversión referenciales frente a la moneda base (Quetzal - GTQ)
+ * 1 USD = 7.80 GTQ
+ * 1 EUR = 8.50 GTQ
+ */
+export const TASAS_CAMBIO: Record<'GTQ' | 'USD' | 'EUR', number> = {
+  GTQ: 1.0,
+  USD: 7.8,
+  EUR: 8.5,
+};
+
 export const GRADIENTES_AVATAR = [
   { id: 'violet-cyan', nombre: 'Violeta y Cian', clases: 'from-violet-600 to-cyan-400' },
   { id: 'fuchsia-rose', nombre: 'Fucsia y Rosa', clases: 'from-fuchsia-600 to-rose-400' },
@@ -78,8 +89,40 @@ export class SettingsService {
   /** Flujo de la divisa configurada */
   readonly moneda$: Observable<MonedaConfig> = this.settings$.pipe(map((s) => s.moneda));
 
+  /** Código de la moneda reactivo ('GTQ', 'USD', 'EUR') */
+  readonly codigoMoneda$: Observable<'GTQ' | 'USD' | 'EUR'> = this.moneda$.pipe(map((m) => m.codigo));
+
   /** Símbolo de moneda reactivo ('Q', '$', '€') */
   readonly simboloMoneda$: Observable<string> = this.moneda$.pipe(map((m) => m.simbolo));
+
+  /** Tasa de cambio frente a la moneda base GTQ */
+  readonly tasaCambio$: Observable<number> = this.moneda$.pipe(
+    map((m) => TASAS_CAMBIO[m.codigo] || 1.0)
+  );
+
+  /** Tasa de cambio sincrónica actual */
+  get tasaActual(): number {
+    const codigo = this.snapshot?.moneda?.codigo || 'GTQ';
+    return TASAS_CAMBIO[codigo] || 1.0;
+  }
+
+  /**
+   * Convierte un monto expresado en moneda base GTQ a la moneda actualmente activa
+   * Para USD divide entre 7.80, para EUR divide entre 8.50, para GTQ divide entre 1.0
+   */
+  convertirDesdeGTQ(montoGTQ: number): number {
+    const tasa = this.tasaActual;
+    return (Number(montoGTQ) || 0) / tasa;
+  }
+
+  /**
+   * Convierte un monto ingresado en la moneda actualmente activa hacia la moneda base GTQ
+   * Para USD multiplica por 7.80, para EUR multiplica por 8.50, para GTQ multiplica por 1.0
+   */
+  convertirHaciaGTQ(montoMoneda: number): number {
+    const tasa = this.tasaActual;
+    return (Number(montoMoneda) || 0) * tasa;
+  }
 
   /** Día de inicio del ciclo financiero */
   readonly diaInicioCiclo$: Observable<number> = this.settings$.pipe(map((s) => s.diaInicioCiclo));

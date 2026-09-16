@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -7,10 +8,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { IncomeService, IncomeItem } from '../../core/services/income.service';
 import { ExpenseService, ExpenseItem, GastoPorCategoria } from '../../core/services/expense.service';
 import { BudgetService, BudgetProgress } from '../../core/services/budget.service';
-import { SavingsService } from '../../core/services/savings.service';
-import { obtenerMesAnioActual } from '../../core/utils/date.utils';
-
+import { SavingsService, EventoAhorro } from '../../core/services/savings.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { obtenerMesAnioActual, obtenerFechaCompletaHoy } from '../../core/utils/date.utils';
+import { CurrencyConversionPipe } from '../../core/pipes/currency-conversion.pipe';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 export interface AppNotification {
@@ -19,6 +20,7 @@ export interface AppNotification {
   mensaje: string;
   leida: boolean;
   hora: string;
+  tipo?: 'alerta' | 'exito' | 'info';
 }
 
 export interface ColumnaGrafica {
@@ -31,7 +33,7 @@ export interface ColumnaGrafica {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyConversionPipe],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
@@ -59,46 +61,23 @@ export class DashboardComponent {
     map((n) => n.visualesActivas)
   );
 
-
   // ─── Fechas en tiempo real dinámicas ─────────────────────────
   readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
+  readonly fechaCompletaHoy = signal<string>(obtenerFechaCompletaHoy());
+  readonly mostrarSelectorCalendario = signal<boolean>(false);
 
   // ─── Filtro de Período Operativo (Semana / Mes / Año) ────────
   readonly activePeriod = signal<'Semana' | 'Mes' | 'Año'>('Mes');
   private readonly periodSubject = new BehaviorSubject<'Semana' | 'Mes' | 'Año'>('Mes');
 
-  // ─── Notificaciones Interactivas Flotantes ───────────────────
+  // ─── Barra de Búsqueda con Lupa ──────────────────────────────
+  readonly filtroBusqueda = signal<string>('');
+  private readonly busquedaSubject = new BehaviorSubject<string>('');
+
+  // ─── Notificaciones Reactivas en Tiempo Real ──────────────────
   readonly mostrarDropdownNotif = signal<boolean>(false);
-  readonly notificaciones = signal<AppNotification[]>([
-    {
-      id: 'notif-1',
-      titulo: 'Plataforma Totalmente Sincronizada',
-      mensaje: 'El Balance, Gastos Acumulados y Fondo de Reserva se recalculan automáticamente.',
-      leida: false,
-      hora: 'Hace 5 min',
-    },
-    {
-      id: 'notif-2',
-      titulo: 'Autenticación con Google Activa',
-      mensaje: 'Sesión iniciada con identidad de Google OAuth 2.0 y perfil sincronizado.',
-      leida: false,
-      hora: 'Hace 20 min',
-    },
-    {
-      id: 'notif-3',
-      titulo: 'Control de Sesión por Actividad',
-      mensaje: 'El token de autenticación se mantiene activo mientras interactúa con el sistema.',
-      leida: false,
-      hora: 'Hace 1 hora',
-    },
-    {
-      id: 'notif-4',
-      titulo: 'Resumen Financiero Consolidado',
-      mensaje: 'El balance y desglose financiero del período se encuentran actualizados.',
-      leida: false,
-      hora: 'Hoy',
-    },
-  ]);
+  readonly notificaciones = signal<AppNotification[]>([]);
+  private readonly notificacionesLimpiadasIds = new Set<string>();
 
   readonly contadorNoLeidas = computed(() =>
     this.notificaciones().filter((n) => !n.leida).length
@@ -113,7 +92,7 @@ export class DashboardComponent {
     map(([ingresos, gastos, periodo]) => {
       const hoy = new Date();
       const anioActual = hoy.getFullYear();
-      const mesActual = hoy.getMonth(); // 0 a 11
+      const mesActual = hoy.getMonth();
 
       const filtrarFecha = (fechaStr: string): boolean => {
         if (!fechaStr) return false;
@@ -124,7 +103,6 @@ export class DashboardComponent {
         const fechaItem = new Date(itemAnio, itemMes, itemDia);
 
         if (periodo === 'Semana') {
-          // Últimos 7 días corridos
           const hace7Dias = new Date();
           hace7Dias.setDate(hoy.getDate() - 7);
           hace7Dias.setHours(0, 0, 0, 0);
@@ -135,39 +113,47 @@ export class DashboardComponent {
           return itemAnio === anioActual && itemMes === mesActual;
         }
 
-        // Periodo Año
-        return itemAnio === anioActual;
+        if (periodo === 'Año') {
+          return itemAnio === anioActual;
+        }
+
+        return true;
       };
 
-      const ingresosFiltrados = ingresos.filter((i) => filtrarFecha(i.fecha));
-      const gastosFiltrados = gastos.filter((g) => filtrarFecha(g.fecha));
+      const ingresosFiltrados = ingresos.filter((item) => filtrarFecha(item.fecha));
+      const gastosFiltrados = gastos.filter((item) => filtrarFecha(item.fecha));
 
       return { ingresosFiltrados, gastosFiltrados, periodo };
     })
   );
 
-  /** Ingresos filtrados por el período seleccionado */
+  /** Ingresos calculados según el período */
   readonly totalIngresos$: Observable<number> = this.datosFiltrados$.pipe(
     map(({ ingresosFiltrados }) =>
       ingresosFiltrados.reduce((acc, item) => acc + (Number(item.monto) || 0), 0)
     )
   );
 
-  /** Gastos filtrados por el período seleccionado */
+  /** Gastos calculados según el período */
   readonly totalGastos$: Observable<number> = this.datosFiltrados$.pipe(
     map(({ gastosFiltrados }) =>
       gastosFiltrados.reduce((acc, item) => acc + (Number(item.monto) || 0), 0)
     )
   );
 
-  /** Balance Total reactivo (Ingresos - Gastos del período) */
+  /** Fondo de ahorro total acumulado */
+  readonly totalAhorrado$: Observable<number> = this.savingsSvc.totalAhorrado$;
+
+  /** Balance Total reactivo sincronizado con el Fondo de Ahorro: Ingresos - Gastos - FondosAhorrados */
   readonly balanceTotal$: Observable<number> = combineLatest([
     this.totalIngresos$,
     this.totalGastos$,
-  ]).pipe(map(([ingresos, gastos]) => ingresos - gastos));
-
-  /** Fondo de ahorro total acumulado */
-  readonly totalAhorrado$: Observable<number> = this.savingsSvc.totalAhorrado$;
+    this.totalAhorrado$,
+  ]).pipe(
+    map(([ingresos, gastos, fondosAhorrados]) =>
+      ingresos - gastos - (Number(fondosAhorrados) || 0)
+    )
+  );
 
   /** Histograma dinámico con columnas adaptadas según el período */
   readonly columnasSemanales$: Observable<ColumnaGrafica[]> = this.datosFiltrados$.pipe(
@@ -175,7 +161,6 @@ export class DashboardComponent {
       const hoy = new Date();
 
       if (periodo === 'Semana') {
-        // 7 Días de la semana
         const diasNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const dias: { etiqueta: string; rango: string; fechaKey: string; monto: number }[] = [];
 
@@ -207,75 +192,77 @@ export class DashboardComponent {
           etiqueta: d.etiqueta,
           rango: d.rango,
           monto: d.monto,
-          porcentajeAltura: maxMonto > 0 && d.monto > 0 ? Math.max(14, Math.round((d.monto / maxMonto) * 100)) : 0,
+          porcentajeAltura: maxMonto > 0 && d.monto > 0 ? Math.max(12, Math.round((d.monto / maxMonto) * 100)) : 0,
         }));
       }
 
-      if (periodo === 'Año') {
-        // 12 Meses del año en curso
-        const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        const anio = hoy.getFullYear();
-        const meses = nombresMeses.map((nombre, index) => ({
-          etiqueta: nombre,
-          rango: `${nombre} ${anio}`,
-          mesIndex: index,
-          monto: 0,
-        }));
+      if (periodo === 'Mes') {
+        const semanas = [
+          { etiqueta: 'Sem 1', rango: '1 - 7', dias: [1, 7], monto: 0 },
+          { etiqueta: 'Sem 2', rango: '8 - 14', dias: [8, 14], monto: 0 },
+          { etiqueta: 'Sem 3', rango: '15 - 21', dias: [15, 21], monto: 0 },
+          { etiqueta: 'Sem 4', rango: '22 - 28', dias: [22, 28], monto: 0 },
+          { etiqueta: 'Sem 5', rango: '29 - 31', dias: [29, 31], monto: 0 },
+        ];
 
         ingresosFiltrados.forEach((item) => {
-          const mesItem = item.fecha ? parseInt(item.fecha.split('-')[1] || '1', 10) - 1 : 0;
-          if (meses[mesItem]) {
-            meses[mesItem].monto += Number(item.monto) || 0;
+          if (!item.fecha) return;
+          const dia = parseInt(item.fecha.split('-')[2] || '1', 10);
+          const sem = semanas.find((s) => dia >= s.dias[0] && dia <= s.dias[1]);
+          if (sem) {
+            sem.monto += Number(item.monto) || 0;
           }
         });
 
-        const maxMonto = Math.max(...meses.map((m) => m.monto), 0);
+        const maxMonto = Math.max(...semanas.map((s) => s.monto), 0);
 
-        return meses.map((m) => ({
-          etiqueta: m.etiqueta,
-          rango: m.rango,
-          monto: m.monto,
-          porcentajeAltura: maxMonto > 0 && m.monto > 0 ? Math.max(14, Math.round((m.monto / maxMonto) * 100)) : 0,
+        return semanas.map((s) => ({
+          etiqueta: s.etiqueta,
+          rango: s.rango,
+          monto: s.monto,
+          porcentajeAltura: maxMonto > 0 && s.monto > 0 ? Math.max(12, Math.round((s.monto / maxMonto) * 100)) : 0,
         }));
       }
 
-      // Periodo 'Mes' por defecto: 5 semanas del mes
-      const semanas = [
-        { rango: '1 - 7', etiqueta: 'Semana 1', start: 1, end: 7, monto: 0 },
-        { rango: '8 - 14', etiqueta: 'Semana 2', start: 8, end: 14, monto: 0 },
-        { rango: '15 - 21', etiqueta: 'Semana 3', start: 15, end: 21, monto: 0 },
-        { rango: '22 - 28', etiqueta: 'Semana 4', start: 22, end: 28, monto: 0 },
-        { rango: '29 - 31', etiqueta: 'Semana 5', start: 29, end: 31, monto: 0 },
-      ];
+      // Período: Año
+      const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const meses = mesesNombres.map((nom, idx) => ({
+        etiqueta: nom,
+        rango: nom,
+        mesIdx: idx,
+        monto: 0,
+      }));
 
       ingresosFiltrados.forEach((item) => {
-        const dia = item.fecha ? parseInt(item.fecha.split('-')[2] || '1', 10) : 1;
-        const sem = semanas.find((s) => dia >= s.start && dia <= s.end) || semanas[0];
-        sem.monto += Number(item.monto) || 0;
+        if (!item.fecha) return;
+        const mes = parseInt(item.fecha.split('-')[1] || '1', 10) - 1;
+        if (meses[mes]) {
+          meses[mes].monto += Number(item.monto) || 0;
+        }
       });
 
-      const maxMonto = Math.max(...semanas.map((s) => s.monto), 0);
+      const maxMonto = Math.max(...meses.map((m) => m.monto), 0);
 
-      return semanas.map((s) => ({
-        etiqueta: s.etiqueta,
-        rango: s.rango,
-        monto: s.monto,
-        porcentajeAltura: maxMonto > 0 && s.monto > 0 ? Math.max(14, Math.round((s.monto / maxMonto) * 100)) : 0,
+      return meses.map((m) => ({
+        etiqueta: m.etiqueta,
+        rango: m.rango,
+        monto: m.monto,
+        porcentajeAltura: maxMonto > 0 && m.monto > 0 ? Math.max(12, Math.round((m.monto / maxMonto) * 100)) : 0,
       }));
     })
   );
 
-  /** Desglose de gastos por categoría calculado en base al período activo */
+  /** Gastos agrupados por categoría reactivos */
   readonly gastosPorCategoria$: Observable<GastoPorCategoria[]> = this.datosFiltrados$.pipe(
     map(({ gastosFiltrados }) => {
       const mapa = new Map<string, number>();
       let total = 0;
 
-      gastosFiltrados.forEach((g) => {
-        const monto = Number(g.monto) || 0;
+      gastosFiltrados.forEach((item) => {
+        const monto = Number(item.monto) || 0;
+        const cat = item.categoria || 'Varios';
+        mapa.set(cat, (mapa.get(cat) || 0) + monto);
         total += monto;
-        const anterior = mapa.get(g.categoria) || 0;
-        mapa.set(g.categoria, anterior + monto);
       });
 
       const resultado: GastoPorCategoria[] = [];
@@ -291,22 +278,117 @@ export class DashboardComponent {
     })
   );
 
-  /** Gastos recientes del período activo */
-  readonly gastosRecientes$: Observable<ExpenseItem[]> = this.datosFiltrados$.pipe(
-    map(({ gastosFiltrados }) =>
-      [...gastosFiltrados]
+  /** Gastos recientes del período activo filtrados por búsqueda */
+  readonly gastosRecientes$: Observable<ExpenseItem[]> = combineLatest([
+    this.datosFiltrados$,
+    this.busquedaSubject.asObservable(),
+  ]).pipe(
+    map(([{ gastosFiltrados }, busqueda]) => {
+      const q = busqueda.trim().toLowerCase();
+      const lista = q
+        ? gastosFiltrados.filter(
+            (g) =>
+              g.concepto.toLowerCase().includes(q) ||
+              g.categoria.toLowerCase().includes(q) ||
+              g.metodoPago.toLowerCase().includes(q)
+          )
+        : gastosFiltrados;
+
+      return [...lista]
         .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
-        .slice(0, 5)
-    )
+        .slice(0, 5);
+    })
   );
 
   /** Presupuestos por categoría sincronizados */
   readonly presupuestos$: Observable<BudgetProgress[]> = this.budgetSvc.presupuestosConProgreso$;
 
+  constructor() {
+    // Alertas reactivas en tiempo real derivadas del estado de presupuestos
+    this.budgetSvc.presupuestosConProgreso$.subscribe((presupuestos) => {
+      const nuevasAlertas: AppNotification[] = [];
+      presupuestos.forEach((p) => {
+        if (p.porcentajeConsumo >= 100) {
+          const id = `notif-pres-100-${p.id}`;
+          if (!this.notificacionesLimpiadasIds.has(id)) {
+            nuevasAlertas.push({
+              id,
+              titulo: 'Límite de Presupuesto Excedido',
+              mensaje: `El presupuesto para ${p.categoria} ha superado el límite asignado (${p.porcentajeConsumo}%).`,
+              leida: false,
+              hora: 'Ahora',
+              tipo: 'alerta',
+            });
+          }
+        } else if (p.porcentajeConsumo >= 80) {
+          const id = `notif-pres-80-${p.id}`;
+          if (!this.notificacionesLimpiadasIds.has(id)) {
+            nuevasAlertas.push({
+              id,
+              titulo: 'Alerta de Presupuesto al 80%',
+              mensaje: `El consumo en ${p.categoria} ha alcanzado el ${p.porcentajeConsumo}% del límite permitido.`,
+              leida: false,
+              hora: 'Ahora',
+              tipo: 'alerta',
+            });
+          }
+        }
+      });
+
+      if (nuevasAlertas.length > 0) {
+        this.notificaciones.update((existentes) => {
+          const existentesIds = new Set(existentes.map((n) => n.id));
+          const agregar = nuevasAlertas.filter((n) => !existentesIds.has(n.id));
+          return [...agregar, ...existentes];
+        });
+      }
+    });
+
+    // Notificaciones en tiempo real derivadas de eventos de ahorro
+    this.savingsSvc.eventosAhorro$.subscribe((evento: EventoAhorro) => {
+      const horaStr = new Date().toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+      let notif: AppNotification | null = null;
+
+      if (evento.tipo === 'abono') {
+        notif = {
+          id: `notif-abono-${Date.now()}`,
+          titulo: 'Abono de Ahorro Registrado',
+          mensaje: `Se ha acreditado un abono a la meta "${evento.metaTitulo}".`,
+          leida: false,
+          hora: horaStr,
+          tipo: 'exito',
+        };
+      } else if (evento.tipo === 'nueva_meta') {
+        notif = {
+          id: `notif-meta-${Date.now()}`,
+          titulo: 'Nueva Meta de Ahorro Creada',
+          mensaje: `Se ha establecido la meta "${evento.metaTitulo}".`,
+          leida: false,
+          hora: horaStr,
+          tipo: 'info',
+        };
+      } else if (evento.tipo === 'retiro') {
+        notif = {
+          id: `notif-retiro-${Date.now()}`,
+          titulo: 'Retiro de Ahorro Realizado',
+          mensaje: `Se debitaron fondos de la meta "${evento.metaTitulo}" regresando a su balance disponible.`,
+          leida: false,
+          hora: horaStr,
+          tipo: 'info',
+        };
+      }
+
+      if (notif) {
+        this.notificaciones.update((existentes) => [notif!, ...existentes]);
+      }
+    });
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.mostrarDropdownNotif.set(false);
+      this.mostrarSelectorCalendario.set(false);
     }
   }
 
@@ -315,9 +397,27 @@ export class DashboardComponent {
     this.periodSubject.next(period);
   }
 
+  actualizarBusqueda(texto: string): void {
+    this.filtroBusqueda.set(texto);
+    this.busquedaSubject.next(texto);
+  }
+
+  ejecutarBusqueda(): void {
+    this.busquedaSubject.next(this.filtroBusqueda());
+  }
+
   toggleDropdownNotif(event: MouseEvent): void {
     event.stopPropagation();
     this.mostrarDropdownNotif.update((v) => !v);
+  }
+
+  toggleSelectorCalendario(event: MouseEvent): void {
+    event.stopPropagation();
+    this.mostrarSelectorCalendario.update((v) => !v);
+  }
+
+  cerrarSelectorCalendario(): void {
+    this.mostrarSelectorCalendario.set(false);
   }
 
   marcarComoLeida(id: string, event?: MouseEvent): void {
@@ -329,6 +429,7 @@ export class DashboardComponent {
 
   limpiarTodasNotificaciones(event?: MouseEvent): void {
     event?.stopPropagation();
+    this.notificaciones().forEach((n) => this.notificacionesLimpiadasIds.add(n.id));
     this.notificaciones.set([]);
   }
 
@@ -345,21 +446,12 @@ export class DashboardComponent {
   }
 
   get userAvatarUrl(): string | null {
-    const perfil = this.settings()?.perfilVisual;
-    if (perfil?.tipoAvatar === 'iniciales') {
-      return null;
-    }
     const user = this.currentUser();
     return user?.picture || user?.avatarUrl || null;
-  }
-
-  get avatarGradientClass(): string {
-    return this.settings()?.perfilVisual?.fondoGradiente || 'from-violet-600 to-cyan-400';
   }
 
   get userInitial(): string {
     const name = this.userDisplayName;
     return name && name.length > 0 ? name.charAt(0).toUpperCase() : 'U';
   }
-
 }

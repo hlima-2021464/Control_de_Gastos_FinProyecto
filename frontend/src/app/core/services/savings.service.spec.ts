@@ -58,4 +58,25 @@ describe('SavingsService', () => {
     const total = await firstValueFrom(service.totalAhorrado$);
     expect(total).toBe(0);
   });
+
+  it('should withdraw funds from goal when valid and block excess withdrawal', async () => {
+    const meta = service.agregarMeta({
+      titulo: 'Enganche de Vehículo',
+      montoObjetivo: 20000,
+      montoActual: 8000,
+      fechaLimite: '2026-10-31',
+    });
+
+    // Intento de retiro superior al monto actual
+    const excede = service.retirarDeMeta(meta.id, 9000);
+    expect(excede).toBe(false);
+    let total = await firstValueFrom(service.totalAhorrado$);
+    expect(total).toBe(8000);
+
+    // Retiro válido de Q 3,000
+    const exitoso = service.retirarDeMeta(meta.id, 3000);
+    expect(exitoso).toBe(true);
+    total = await firstValueFrom(service.totalAhorrado$);
+    expect(total).toBe(5000);
+  });
 });

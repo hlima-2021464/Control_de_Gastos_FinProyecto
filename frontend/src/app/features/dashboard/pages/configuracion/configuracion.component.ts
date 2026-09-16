@@ -7,20 +7,14 @@ import { AuthService } from '../../../../core/services/auth.service';
 import {
   SettingsService,
   AppSettings,
-  MonedaConfig,
-  FormatoFecha,
   MONEDAS_DISPONIBLES,
-  GRADIENTES_AVATAR,
-  NotificacionesConfig,
 } from '../../../../core/services/settings.service';
-import { IncomeService, IncomeItem } from '../../../../core/services/income.service';
-import { ExpenseService, ExpenseItem } from '../../../../core/services/expense.service';
-import { BudgetService, BudgetItem } from '../../../../core/services/budget.service';
-import { CategoryService, CategoryItem } from '../../../../core/services/category.service';
-import { SavingsService, SavingGoal } from '../../../../core/services/savings.service';
+import { IncomeService } from '../../../../core/services/income.service';
+import { ExpenseService } from '../../../../core/services/expense.service';
+import { BudgetService } from '../../../../core/services/budget.service';
+import { CategoryService } from '../../../../core/services/category.service';
+import { SavingsService } from '../../../../core/services/savings.service';
 import { IdleService } from '../../../../core/services/idle.service';
-
-export type TabConfiguracion = 'perfil' | 'regional' | 'seguridad' | 'notificaciones' | 'datos';
 
 export interface ToastNotificacion {
   visible: boolean;
@@ -47,23 +41,18 @@ export class ConfiguracionComponent {
   private readonly idleSvc = inject(IdleService);
   private readonly router = inject(Router);
 
-  // ─── Pestaña Activa ───────────────────────────────────────────
-  readonly activeTab = signal<TabConfiguracion>('perfil');
-
   // ─── Estado Reactivo ──────────────────────────────────────────
   readonly currentUser = this.authSvc.currentUser;
   readonly settings = toSignal(this.settingsSvc.settings$, { initialValue: this.settingsSvc.snapshot });
 
   // ─── Constantes del Sistema ───────────────────────────────────
   readonly monedasDisponibles = Object.values(MONEDAS_DISPONIBLES);
-  readonly gradientesDisponibles = GRADIENTES_AVATAR;
   readonly opcionesInactividad = [5, 10, 15, 30];
-  readonly opcionesCiclo = [1, 5, 10, 15, 20, 25, 28];
+  readonly diasCorte = Array.from({ length: 28 }, (_, i) => i + 1);
 
   // ─── Modales ──────────────────────────────────────────────────
   readonly mostrarModalLogout = signal<boolean>(false);
   readonly mostrarModalPurga = signal<boolean>(false);
-  readonly tipoPurgaSeleccionada = signal<'total' | 'ingresos' | 'gastos' | 'ahorro'>('total');
   readonly palabraConfirmacion = signal<string>('');
 
   // ─── Edición de Nombre de Visualización ───────────────────────
@@ -97,45 +86,27 @@ export class ConfiguracionComponent {
   }
 
   get userAvatarUrl(): string | null {
-    const perfil = this.settings()?.perfilVisual;
-    if (perfil?.tipoAvatar === 'iniciales') {
-      return null;
-    }
     const user = this.currentUser();
     return user?.picture || user?.avatarUrl || null;
-  }
-
-  get avatarGradientClass(): string {
-    return this.settings()?.perfilVisual?.fondoGradiente || 'from-violet-600 to-cyan-400';
-  }
-
-  get userInitial(): string {
-    const name = this.userDisplayName;
-    return name && name.length > 0 ? name.charAt(0).toUpperCase() : 'U';
-  }
-
-  get tipoAutenticacion(): string {
-    return this.authSvc.tipoAutenticacion;
-  }
-
-  get ultimoTokenRenovado(): string {
-    return this.authSvc.ultimoTokenRenovado();
   }
 
   get tiempoInactividadActual(): number {
     return this.settings()?.tiempoInactividadMin || 15;
   }
 
+  get diaInicioCicloActual(): number {
+    return this.settings()?.diaInicioCiclo || 1;
+  }
+
+  get monedaActualCodigo(): 'GTQ' | 'USD' | 'EUR' {
+    return this.settings()?.moneda?.codigo || 'GTQ';
+  }
+
   get palabraConfirmacionValida(): boolean {
     return this.palabraConfirmacion().trim() === 'CONFIRMAR';
   }
 
-  // ─── Navegación entre Pestañas ────────────────────────────────
-  seleccionarTab(tab: TabConfiguracion): void {
-    this.activeTab.set(tab);
-  }
-
-  // ─── 1. Gestión de Perfil Visual ──────────────────────────────
+  // ─── Gestión de Perfil de Acceso ──────────────────────────────
   guardarNombreVisualizacion(): void {
     const nuevoNombre = this.nombreVisualizacionInput().trim();
     this.settingsSvc.actualizarPerfilVisual({ nombreVisualizacion: nuevoNombre });
@@ -144,57 +115,6 @@ export class ConfiguracionComponent {
       nuevoNombre
         ? `El saludo del sistema ahora mostrará "${nuevoNombre}".`
         : 'Se ha restablecido el nombre predeterminado de la cuenta.'
-    );
-  }
-
-  seleccionarTipoAvatar(tipo: 'oficial' | 'iniciales'): void {
-    this.settingsSvc.actualizarPerfilVisual({ tipoAvatar: tipo });
-    this.mostrarToast(
-      'Avatar Actualizado',
-      tipo === 'oficial'
-        ? 'Se muestra el avatar oficial de su cuenta.'
-        : 'Se ha activado el avatar con iniciales y estilo personalizado.'
-    );
-  }
-
-  seleccionarGradiente(clases: string): void {
-    this.settingsSvc.actualizarPerfilVisual({
-      tipoAvatar: 'iniciales',
-      fondoGradiente: clases,
-    });
-    this.mostrarToast('Paleta de Color Guardada', 'Se actualizó el gradiente de fondo del avatar.');
-  }
-
-  // ─── 2. Preferencias Financieras y Regionales ────────────────
-  cambiarMoneda(codigo: 'GTQ' | 'USD' | 'EUR'): void {
-    this.settingsSvc.actualizarMoneda(codigo);
-    const m = MONEDAS_DISPONIBLES[codigo];
-    this.mostrarToast(
-      'Divisa Principal Modificada',
-      `Todas las métricas y tablas ahora se expresan en ${m.nombre} (${m.simbolo}).`
-    );
-  }
-
-  cambiarDiaInicioCiclo(dia: number): void {
-    this.settingsSvc.actualizarDiaInicioCiclo(dia);
-    this.mostrarToast(
-      'Ciclo Financiero Actualizado',
-      `El corte mensual se calculará a partir del día ${dia} de cada mes.`
-    );
-  }
-
-  cambiarFormatoFecha(formato: FormatoFecha): void {
-    this.settingsSvc.actualizarFormatoFecha(formato);
-    this.mostrarToast('Formato de Fecha Guardado', `Preferencia de visualización: ${formato}.`);
-  }
-
-  // ─── 3. Seguridad y Sesión ────────────────────────────────────
-  cambiarTiempoInactividad(min: number): void {
-    this.settingsSvc.actualizarTiempoInactividad(min);
-    this.idleSvc.setIdleTimeoutMinutes(min);
-    this.mostrarToast(
-      'Temporizador de Inactividad Actualizado',
-      `La sesión se vigilará automáticamente por ${min} minutos de inactividad continua.`
     );
   }
 
@@ -212,17 +132,36 @@ export class ConfiguracionComponent {
     this.router.navigate(['/login']);
   }
 
-  // ─── 4. Reglas de Notificaciones ──────────────────────────────
-  toggleNotificacion(campo: keyof NotificacionesConfig): void {
-    const actual = this.settings()?.notificaciones[campo] ?? true;
-    this.settingsSvc.actualizarReglasNotificaciones({ [campo]: !actual });
+  // ─── Preferencias Regionales y Moneda ────────────────────────
+  cambiarMoneda(codigo: 'GTQ' | 'USD' | 'EUR'): void {
+    this.settingsSvc.actualizarMoneda(codigo);
+    const m = MONEDAS_DISPONIBLES[codigo];
     this.mostrarToast(
-      'Preferencia de Notificación Modificada',
-      !actual ? 'Regla activada correctamente.' : 'Regla desactivada.'
+      'Divisa Principal Modificada',
+      `Todas las métricas y transacciones ahora se recalculan en ${m.nombre} (${m.simbolo}).`
     );
   }
 
-  // ─── 5. Gestión de Datos y Respaldo ───────────────────────────
+  cambiarDiaInicioCiclo(dia: number): void {
+    const diaNum = Number(dia) || 1;
+    this.settingsSvc.actualizarDiaInicioCiclo(diaNum);
+    this.mostrarToast(
+      'Ciclo Financiero Actualizado',
+      `El corte mensual se calculará a partir del día ${diaNum} de cada mes.`
+    );
+  }
+
+  cambiarTiempoInactividad(min: number): void {
+    const minNum = Number(min) || 15;
+    this.settingsSvc.actualizarTiempoInactividad(minNum);
+    this.idleSvc.setIdleTimeoutMinutes(minNum);
+    this.mostrarToast(
+      'Temporizador de Inactividad Actualizado',
+      `La sesión se vigilará automáticamente por ${minNum} minutos de inactividad continua.`
+    );
+  }
+
+  // ─── Copia de Seguridad y Gestión de Datos ────────────────────
   exportarRespaldoJSON(): void {
     const snapshotConfig = this.settingsSvc.snapshot;
     const respaldo = {
@@ -237,7 +176,6 @@ export class ConfiguracionComponent {
         nombreVisualizacion: this.userDisplayName,
         email: this.userEmail,
         rol: this.userRole,
-        tipoAutenticacion: this.tipoAutenticacion,
       },
       configuracion: snapshotConfig,
       datos: {
@@ -279,7 +217,6 @@ export class ConfiguracionComponent {
         const contenido = lector.result as string;
         const parseado = JSON.parse(contenido);
 
-        // Validación estricta del esquema de respaldo
         if (!parseado.datos || typeof parseado.datos !== 'object') {
           throw new Error('El archivo no contiene el bloque principal de transacciones ("datos").');
         }
@@ -302,7 +239,6 @@ export class ConfiguracionComponent {
           this.savingsSvc.restaurarMetas(ahorros);
         }
 
-        // Restaurar configuración si está presente
         if (parseado.configuracion && typeof parseado.configuracion === 'object') {
           this.settingsSvc.actualizarConfiguracionCompleta(parseado.configuracion);
           if (parseado.configuracion.perfilVisual?.nombreVisualizacion) {
@@ -328,9 +264,7 @@ export class ConfiguracionComponent {
     lector.readAsText(archivo);
   }
 
-  // ─── Zona de Peligro / Purga Selectiva ─────────────────────────
-  abrirModalPurga(tipo: 'total' | 'ingresos' | 'gastos' | 'ahorro'): void {
-    this.tipoPurgaSeleccionada.set(tipo);
+  abrirModalPurga(): void {
     this.palabraConfirmacion.set('');
     this.mostrarModalPurga.set(true);
   }
@@ -343,36 +277,18 @@ export class ConfiguracionComponent {
   ejecutarPurgaConfirmada(): void {
     if (!this.palabraConfirmacionValida) return;
 
-    const tipo = this.tipoPurgaSeleccionada();
+    this.incomeSvc.limpiarIngresos();
+    this.expenseSvc.limpiarGastos();
+    this.budgetSvc.resetearLimites();
+    this.categorySvc.restablecerCategorias();
+    this.savingsSvc.limpiarMetas();
+    this.settingsSvc.restablecerAjustesPredeterminados();
+    this.nombreVisualizacionInput.set('');
 
-    switch (tipo) {
-      case 'ingresos':
-        this.incomeSvc.limpiarIngresos();
-        this.mostrarToast('Ingresos Eliminados', 'Todos los registros de ingresos fueron borrados.');
-        break;
-      case 'gastos':
-        this.expenseSvc.limpiarGastos();
-        this.mostrarToast('Gastos Eliminados', 'Todos los registros de gastos fueron borrados.');
-        break;
-      case 'ahorro':
-        this.savingsSvc.limpiarMetas();
-        this.mostrarToast('Metas Eliminadas', 'Todas las alcancías de ahorro fueron borradas.');
-        break;
-      case 'total':
-      default:
-        this.incomeSvc.limpiarIngresos();
-        this.expenseSvc.limpiarGastos();
-        this.budgetSvc.resetearLimites();
-        this.categorySvc.restablecerCategorias();
-        this.savingsSvc.limpiarMetas();
-        this.settingsSvc.restablecerAjustesPredeterminados();
-        this.nombreVisualizacionInput.set('');
-        this.mostrarToast(
-          'Restablecimiento Total Completado',
-          'La plataforma ha vuelto a su estado de fábrica en cero ($0.00).'
-        );
-        break;
-    }
+    this.mostrarToast(
+      'Restablecimiento Total Completado',
+      'La plataforma ha vuelto a su estado de fábrica en cero.'
+    );
 
     this.cerrarModalPurga();
   }

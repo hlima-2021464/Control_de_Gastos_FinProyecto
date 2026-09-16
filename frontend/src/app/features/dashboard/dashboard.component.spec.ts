@@ -11,6 +11,7 @@ import { SavingsService } from '../../core/services/savings.service';
 describe('DashboardComponent', () => {
   let incomeService: IncomeService;
   let expenseService: ExpenseService;
+  let savingsService: SavingsService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -27,6 +28,7 @@ describe('DashboardComponent', () => {
 
     incomeService = TestBed.inject(IncomeService);
     expenseService = TestBed.inject(ExpenseService);
+    savingsService = TestBed.inject(SavingsService);
   });
 
   it('should create the dashboard component', () => {
@@ -42,19 +44,22 @@ describe('DashboardComponent', () => {
     expect(component.activePeriod()).toBe('Semana');
   });
 
-  it('should start with zero baseline and sync incomes, expenses and balance reactively', async () => {
+  it('should start with zero baseline and sync incomes, expenses, savings and balance reactively', async () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const component = fixture.componentInstance;
 
     incomeService.limpiarIngresos();
     expenseService.limpiarGastos();
+    savingsService.limpiarMetas();
 
     const initialTotal = await firstValueFrom(component.totalIngresos$);
     const initialGastos = await firstValueFrom(component.totalGastos$);
+    const initialAhorro = await firstValueFrom(component.totalAhorrado$);
     const initialBalance = await firstValueFrom(component.balanceTotal$);
 
     expect(initialTotal).toBe(0);
     expect(initialGastos).toBe(0);
+    expect(initialAhorro).toBe(0);
     expect(initialBalance).toBe(0);
 
     const fechaHoy = new Date().toISOString().split('T')[0];
@@ -65,7 +70,6 @@ describe('DashboardComponent', () => {
       monto: 5000,
       fecha: fechaHoy,
       fuente: 'Nómina Fija',
-      cuentaDestino: 'Cuenta Monetaria BAC',
     });
 
     // Agregar gasto de Q 1,200
@@ -83,6 +87,28 @@ describe('DashboardComponent', () => {
 
     expect(updatedTotal).toBe(5000);
     expect(updatedGastos).toBe(1200);
-    expect(updatedBalance).toBe(3800); // 5000 - 1200
+    expect(updatedBalance).toBe(3800); // 5000 - 1200 - 0 = 3800
+
+    // Agregar meta de ahorro con abono de Q 800
+    const meta = savingsService.agregarMeta({
+      titulo: 'Meta Auto',
+      montoObjetivo: 10000,
+      montoActual: 800,
+      fechaLimite: fechaHoy,
+    });
+
+    const balanceConAhorro = await firstValueFrom(component.balanceTotal$);
+    const ahorroAcumulado = await firstValueFrom(component.totalAhorrado$);
+
+    expect(ahorroAcumulado).toBe(800);
+    expect(balanceConAhorro).toBe(3000); // 5000 - 1200 - 800 = 3000
+
+    // Retiro de ahorro de Q 300 (retorna a balance disponible)
+    savingsService.retirarDeMeta(meta.id, 300);
+    const balancePostRetiro = await firstValueFrom(component.balanceTotal$);
+    const ahorroPostRetiro = await firstValueFrom(component.totalAhorrado$);
+
+    expect(ahorroPostRetiro).toBe(500);
+    expect(balancePostRetiro).toBe(3300); // 5000 - 1200 - 500 = 3300
   });
 });

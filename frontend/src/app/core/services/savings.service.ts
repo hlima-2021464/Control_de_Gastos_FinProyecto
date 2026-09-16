@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface SavingGoal {
@@ -11,6 +11,13 @@ export interface SavingGoal {
   colorHex?: string;
 }
 
+export interface EventoAhorro {
+  tipo: 'abono' | 'nueva_meta' | 'retiro';
+  metaTitulo: string;
+  monto?: number;
+  fecha: Date;
+}
+
 const STORAGE_KEY = 'control_gastos_ahorro';
 
 @Injectable({
@@ -19,8 +26,10 @@ const STORAGE_KEY = 'control_gastos_ahorro';
 export class SavingsService {
   // Baseline en cero ($Q 0.00)
   private readonly metasSubject = new BehaviorSubject<SavingGoal[]>(this.cargarEstadoInicial());
+  private readonly eventosSubject = new Subject<EventoAhorro>();
 
   readonly metas$: Observable<SavingGoal[]> = this.metasSubject.asObservable();
+  readonly eventosAhorro$: Observable<EventoAhorro> = this.eventosSubject.asObservable();
 
   /** Total acumulado efectivamente en todas las metas de ahorro */
   readonly totalAhorrado$: Observable<number> = this.metas$.pipe(
@@ -89,6 +98,12 @@ export class SavingsService {
     const actualizados = [item, ...this.metasSubject.getValue()];
     this.metasSubject.next(actualizados);
     this.persistirEstado(actualizados);
+    this.eventosSubject.next({
+      tipo: 'nueva_meta',
+      metaTitulo: item.titulo,
+      monto: item.montoObjetivo,
+      fecha: new Date(),
+    });
     return item;
   }
 
@@ -113,8 +128,10 @@ export class SavingsService {
     const monto = Number(montoAbono) || 0;
     if (monto <= 0) return;
 
+    let metaNombre = '';
     const actualizados = this.metasSubject.getValue().map((item) => {
       if (item.id === id) {
+        metaNombre = item.titulo;
         return {
           ...item,
           montoActual: (Number(item.montoActual) || 0) + monto,
@@ -125,6 +142,45 @@ export class SavingsService {
 
     this.metasSubject.next(actualizados);
     this.persistirEstado(actualizados);
+
+    this.eventosSubject.next({
+      tipo: 'abono',
+      metaTitulo: metaNombre,
+      monto,
+      fecha: new Date(),
+    });
+  }
+
+  retirarDeMeta(id: string, montoRetiro: number): boolean {
+    const monto = Number(montoRetiro) || 0;
+    if (monto <= 0) return false;
+
+    const actual = this.metasSubject.getValue().find((m) => m.id === id);
+    if (!actual || actual.montoActual < monto) {
+      return false;
+    }
+
+    const actualizados = this.metasSubject.getValue().map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          montoActual: Math.max(0, (Number(item.montoActual) || 0) - monto),
+        };
+      }
+      return item;
+    });
+
+    this.metasSubject.next(actualizados);
+    this.persistirEstado(actualizados);
+
+    this.eventosSubject.next({
+      tipo: 'retiro',
+      metaTitulo: actual.titulo,
+      monto,
+      fecha: new Date(),
+    });
+
+    return true;
   }
 
   eliminarMeta(id: string): void {

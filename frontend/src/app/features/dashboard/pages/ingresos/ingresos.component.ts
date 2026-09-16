@@ -1,16 +1,17 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { IncomeService, IncomeItem, ColumnaSemanal } from '../../../../core/services/income.service';
 import { SettingsService } from '../../../../core/services/settings.service';
-import { obtenerMesAnioActual } from '../../../../core/utils/date.utils';
+import { obtenerMesAnioActual, obtenerFechaHoyISO, obtenerFechaCompletaHoy, fechaNoFuturaValidator } from '../../../../core/utils/date.utils';
+import { CurrencyConversionPipe } from '../../../../core/pipes/currency-conversion.pipe';
 
 @Component({
   selector: 'app-ingresos',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyConversionPipe],
   templateUrl: './ingresos.component.html',
   styleUrls: ['./ingresos.component.css'],
 })
@@ -18,10 +19,13 @@ export class IngresosComponent {
   private readonly incomeSvc = inject(IncomeService);
   private readonly settingsSvc = inject(SettingsService);
   private readonly fb = inject(FormBuilder);
+  private readonly elementRef = inject(ElementRef);
 
+  readonly fechaHoyISO = obtenerFechaHoyISO();
+  readonly fechaCompletaHoy = signal<string>(obtenerFechaCompletaHoy());
   readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
+  readonly mostrarSelectorCalendario = signal<boolean>(false);
   readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
-
 
   // ─── Observables de métricas directas del servicio ──────────
   readonly totalIngresos$: Observable<number> = this.incomeSvc.totalIngresos$;
@@ -49,7 +53,7 @@ export class IngresosComponent {
         const coincideTexto =
           !texto ||
           item.concepto.toLowerCase().includes(texto.toLowerCase()) ||
-          item.cuentaDestino.toLowerCase().includes(texto.toLowerCase());
+          item.fuente.toLowerCase().includes(texto.toLowerCase());
 
         const coincideFuente =
           !fuente || item.fuente.toLowerCase() === fuente.toLowerCase();
@@ -67,14 +71,36 @@ export class IngresosComponent {
   readonly ingresoForm: FormGroup = this.fb.group({
     concepto: ['', [Validators.required, Validators.minLength(3)]],
     monto: [null, [Validators.required, Validators.min(0.01)]],
-    fecha: [new Date().toISOString().split('T')[0], [Validators.required]],
+    fecha: [this.fechaHoyISO, [Validators.required, fechaNoFuturaValidator]],
     fuente: ['Nómina Fija', [Validators.required]],
-    cuentaDestino: ['Cuenta Monetaria BAC', [Validators.required]],
   });
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.mostrarSelectorCalendario.set(false);
+    }
+  }
 
   actualizarFiltros(): void {
     this.filtroTexto$.next(this.filtroTexto);
     this.filtroFuente$.next(this.filtroFuente);
+  }
+
+  toggleSelectorCalendario(event: MouseEvent): void {
+    event.stopPropagation();
+    this.mostrarSelectorCalendario.update((v) => !v);
+  }
+
+  cerrarSelectorCalendario(): void {
+    this.mostrarSelectorCalendario.set(false);
+  }
+
+  seleccionarMes(mesIdx: number): void {
+    const fecha = new Date();
+    fecha.setMonth(mesIdx);
+    this.mesAnioActual.set(obtenerMesAnioActual(fecha));
+    this.cerrarSelectorCalendario();
   }
 
   abrirModalRegistro(): void {
@@ -83,9 +109,8 @@ export class IngresosComponent {
     this.ingresoForm.reset({
       concepto: '',
       monto: null,
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: this.fechaHoyISO,
       fuente: 'Nómina Fija',
-      cuentaDestino: 'Cuenta Monetaria BAC',
     });
     this.mostrarModal.set(true);
   }
@@ -93,12 +118,14 @@ export class IngresosComponent {
   editarIngreso(item: IncomeItem): void {
     this.modoEdicion.set(true);
     this.ingresoEditandoId.set(item.id);
+
+    const montoConvertido = Number(this.settingsSvc.convertirDesdeGTQ(item.monto).toFixed(2));
+
     this.ingresoForm.patchValue({
       concepto: item.concepto,
-      monto: item.monto,
+      monto: montoConvertido,
       fecha: item.fecha,
       fuente: item.fuente,
-      cuentaDestino: item.cuentaDestino,
     });
     this.mostrarModal.set(true);
   }
@@ -123,12 +150,14 @@ export class IngresosComponent {
     }
 
     const formVal = this.ingresoForm.value;
+    const montoIngresado = Number(formVal.monto);
+    const montoBaseGTQ = Number(this.settingsSvc.convertirHaciaGTQ(montoIngresado).toFixed(2));
+
     const ingresoData = {
       concepto: formVal.concepto.trim(),
-      monto: Number(formVal.monto),
+      monto: montoBaseGTQ,
       fecha: formVal.fecha,
       fuente: formVal.fuente,
-      cuentaDestino: formVal.cuentaDestino,
     };
 
     if (this.modoEdicion() && this.ingresoEditandoId()) {

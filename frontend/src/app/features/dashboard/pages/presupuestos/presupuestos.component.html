@@ -21,22 +21,26 @@
         (click)="abrirModalNuevo()"
         class="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-violet-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        Definir Presupuesto
+        <span>Definir Presupuesto</span>
       </button>
     </div>
   </header>
 
   <!-- 1. Tarjetas de Resumen Global -->
-  <section class="grid grid-cols-3 gap-4">
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Techo Presupuestado Total</span>
-      <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (totalPresupuestado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-slate-100 font-mono">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalPresupuestado$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
       <p class="text-[11px] text-slate-400">Límite financiero mensual combinado.</p>
     </div>
 
     <div class="glass-card p-4 rounded-2xl border-l-4 border-amber-400 space-y-1 hover:scale-[1.01] transition-transform duration-200 shadow-md">
       <span class="text-xs font-semibold text-slate-300">Gasto Ejecutado en Rubros</span>
-      <p class="text-xl font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (totalEjecutado$ | async) || 0 | number:'1.2-2' }}</p>
+      <p class="text-xl font-bold text-slate-100 font-mono">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalEjecutado$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
       <p class="text-[11px] text-slate-400">Total debitado sobre categorías asignadas.</p>
     </div>
 
@@ -45,11 +49,13 @@
       @if (totalPresupuestado$ | async; as pres) {
         @if (totalEjecutado$ | async; as ejec) {
           <p class="text-xl font-bold font-mono" [ngClass]="(pres - ejec) >= 0 ? 'text-emerald-400' : 'text-rose-400'">
-            {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres - ejec) | number:'1.2-2' }}
+            {{ (simboloMoneda$ | async) || 'Q' }} {{ (((pres - ejec) | appMoneda)) | number:'1.2-2' }}
           </p>
           <p class="text-[11px] text-slate-400">Margen operativo restante en el ciclo.</p>
         } @else {
-          <p class="text-xl font-bold text-emerald-400 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ pres | number:'1.2-2' }}</p>
+          <p class="text-xl font-bold text-emerald-400 font-mono">
+            {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres | appMoneda) | number:'1.2-2' }}
+          </p>
           <p class="text-[11px] text-slate-400">100% disponible.</p>
         }
       } @else {
@@ -79,8 +85,8 @@
     <span class="text-[10px] text-slate-400">Sincronizado con el módulo de Gastos</span>
   </section>
 
-  <!-- 3. Cuadrícula de Presupuestos por Categoría con Iluminación Dinámica -->
-  <section class="grid grid-cols-2 gap-4">
+  <!-- 3. Cuadrícula de Presupuestos por Categoría -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
     @for (item of presupuestos$ | async; track item.id) {
       <div
         class="glass-card p-5 rounded-2xl space-y-4 hover:scale-[1.01] transition-all duration-300 relative overflow-hidden border-2"
@@ -99,8 +105,8 @@
               </span>
             </div>
             <p class="text-xs text-slate-400 mt-1">
-              Consumo: <strong class="text-white font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.montoEjecutado | number:'1.2-2' }}</strong> de
-              <span class="text-slate-300 font-semibold font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.montoLimite | number:'1.2-2' }}</span>
+              Consumo: <strong class="text-white font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.montoEjecutado | appMoneda) | number:'1.2-2' }}</strong> de
+              <span class="text-slate-300 font-semibold font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.montoLimite | appMoneda) | number:'1.2-2' }}</span>
             </p>
           </div>
 
@@ -137,7 +143,7 @@
           </div>
           <div class="flex justify-between text-[11px] text-slate-400 font-mono">
             <span>Ejecutado: <strong class="text-slate-200">{{ item.porcentajeConsumo }}%</strong></span>
-            <span>Disponible: <strong class="text-slate-200">{{ (simboloMoneda$ | async) || 'Q' }} {{ item.restante | number:'1.2-2' }}</strong></span>
+            <span>Disponible: <strong class="text-slate-200">{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.restante | appMoneda) | number:'1.2-2' }}</strong></span>
           </div>
         </div>
 
@@ -160,7 +166,7 @@
     }
 
     @if ((presupuestos$ | async)?.length === 0) {
-      <div class="col-span-2 glass-card p-12 text-center text-slate-400 space-y-3 rounded-2xl">
+      <div class="col-span-1 md:col-span-2 glass-card p-12 text-center text-slate-400 space-y-3 rounded-2xl">
         <p class="text-sm font-semibold text-slate-300">No hay techos presupuestarios activos actualmente.</p>
         <p class="text-xs text-slate-500">Defina un presupuesto para comenzar a monitorear su consumo por rubro.</p>
       </div>
@@ -191,14 +197,16 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">Tope Límite (GTQ) *</label>
+              <label class="block text-slate-300 font-semibold mb-1">
+                Tope Límite ({{ (simboloMoneda$ | async) || 'Q' }}) *
+              </label>
               <input
                 type="number"
-                step="1"
-                min="1"
+                step="0.01"
+                min="0.01"
                 formControlName="montoLimite"
-                placeholder="Ej. 2000"
-                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+                placeholder="0.00"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500 font-mono">
             </div>
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Período *</label>

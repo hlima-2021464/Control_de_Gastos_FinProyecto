@@ -248,7 +248,7 @@ export class ReportesComponent {
         `"${ing.fecha}"`,
         `"${ing.concepto.replace(/"/g, '""')}"`,
         `"${ing.fuente.replace(/"/g, '""')}"`,
-        `"${ing.cuentaDestino.replace(/"/g, '""')}"`,
+        '""',
         ing.monto.toFixed(2),
       ].join(',');
       lineas.push(fila);

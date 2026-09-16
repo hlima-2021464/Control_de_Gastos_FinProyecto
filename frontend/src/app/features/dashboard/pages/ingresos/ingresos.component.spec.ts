@@ -42,7 +42,6 @@ describe('IngresosComponent', () => {
       monto: 3000,
       fecha: '2026-08-14',
       fuente: 'Desarrollo Web',
-      cuentaDestino: 'Cuenta Monetaria BAC',
     });
 
     incomeService.agregarIngreso({
@@ -50,7 +49,6 @@ describe('IngresosComponent', () => {
       monto: 4000,
       fecha: '2026-08-15',
       fuente: 'Nómina Fija',
-      cuentaDestino: 'BAM Nómina',
     });
 
     component.filtroTexto = 'Freelance';

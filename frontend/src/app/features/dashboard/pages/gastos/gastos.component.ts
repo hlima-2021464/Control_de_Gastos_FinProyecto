@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
@@ -6,12 +6,15 @@ import { map } from 'rxjs/operators';
 import { ExpenseService, ExpenseItem } from '../../../../core/services/expense.service';
 import { CategoryService, CategoryItem } from '../../../../core/services/category.service';
 import { SettingsService } from '../../../../core/services/settings.service';
-import { obtenerMesAnioActual, obtenerFechaHoyISO } from '../../../../core/utils/date.utils';
+import { IncomeService } from '../../../../core/services/income.service';
+import { SavingsService } from '../../../../core/services/savings.service';
+import { obtenerMesAnioActual, obtenerFechaHoyISO, obtenerFechaCompletaHoy, fechaNoFuturaValidator } from '../../../../core/utils/date.utils';
+import { CurrencyConversionPipe } from '../../../../core/pipes/currency-conversion.pipe';
 
 @Component({
   selector: 'app-gastos',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CurrencyConversionPipe],
   templateUrl: './gastos.component.html',
   styleUrls: ['./gastos.component.css'],
 })
@@ -19,11 +22,16 @@ export class GastosComponent {
   private readonly expenseSvc = inject(ExpenseService);
   private readonly categorySvc = inject(CategoryService);
   private readonly settingsSvc = inject(SettingsService);
+  private readonly incomeSvc = inject(IncomeService);
+  private readonly savingsSvc = inject(SavingsService);
   private readonly fb = inject(FormBuilder);
+  private readonly elementRef = inject(ElementRef);
 
+  readonly fechaHoyISO = obtenerFechaHoyISO();
+  readonly fechaCompletaHoy = signal<string>(obtenerFechaCompletaHoy());
   readonly mesAnioActual = signal<string>(obtenerMesAnioActual());
+  readonly mostrarSelectorCalendario = signal<boolean>(false);
   readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
-
 
   // ─── Flujos de métricas ──────────────────────────────────────
   readonly totalGastos$: Observable<number> = this.expenseSvc.totalGastos$;
@@ -72,14 +80,22 @@ export class GastosComponent {
   readonly mostrarModal = signal<boolean>(false);
   readonly modoEdicion = signal<boolean>(false);
   readonly gastoEditandoId = signal<string | null>(null);
+  readonly errorSaldoInsuficiente = signal<string | null>(null);
 
   readonly gastoForm: FormGroup = this.fb.group({
     concepto: ['', [Validators.required, Validators.minLength(3)]],
     monto: [null, [Validators.required, Validators.min(0.01)]],
-    fecha: [new Date().toISOString().split('T')[0], [Validators.required]],
+    fecha: [this.fechaHoyISO, [Validators.required, fechaNoFuturaValidator]],
     categoria: ['Alimentación', [Validators.required]],
     metodoPago: ['Tarjeta de Débito', [Validators.required]],
   });
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.mostrarSelectorCalendario.set(false);
+    }
+  }
 
   actualizarFiltros(): void {
     this.filtroTexto$.next(this.filtroTexto);
@@ -96,13 +112,30 @@ export class GastosComponent {
     this.actualizarFiltros();
   }
 
+  toggleSelectorCalendario(event: MouseEvent): void {
+    event.stopPropagation();
+    this.mostrarSelectorCalendario.update((v) => !v);
+  }
+
+  cerrarSelectorCalendario(): void {
+    this.mostrarSelectorCalendario.set(false);
+  }
+
+  seleccionarMes(mesIdx: number): void {
+    const fecha = new Date();
+    fecha.setMonth(mesIdx);
+    this.mesAnioActual.set(obtenerMesAnioActual(fecha));
+    this.cerrarSelectorCalendario();
+  }
+
   abrirModalRegistro(): void {
     this.modoEdicion.set(false);
     this.gastoEditandoId.set(null);
+    this.errorSaldoInsuficiente.set(null);
     this.gastoForm.reset({
       concepto: '',
       monto: null,
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: this.fechaHoyISO,
       categoria: 'Alimentación',
       metodoPago: 'Tarjeta de Débito',
     });
@@ -112,9 +145,13 @@ export class GastosComponent {
   editarGasto(item: ExpenseItem): void {
     this.modoEdicion.set(true);
     this.gastoEditandoId.set(item.id);
+    this.errorSaldoInsuficiente.set(null);
+
+    const montoConvertido = Number(this.settingsSvc.convertirDesdeGTQ(item.monto).toFixed(2));
+
     this.gastoForm.patchValue({
       concepto: item.concepto,
-      monto: item.monto,
+      monto: montoConvertido,
       fecha: item.fecha,
       categoria: item.categoria,
       metodoPago: item.metodoPago,
@@ -132,19 +169,48 @@ export class GastosComponent {
     this.mostrarModal.set(false);
     this.modoEdicion.set(false);
     this.gastoEditandoId.set(null);
+    this.errorSaldoInsuficiente.set(null);
     this.gastoForm.reset();
   }
 
   guardarGasto(): void {
+    this.errorSaldoInsuficiente.set(null);
+
     if (this.gastoForm.invalid) {
       this.gastoForm.markAllAsTouched();
       return;
     }
 
     const formVal = this.gastoForm.value;
+    const montoIngresado = Number(formVal.monto);
+
+    // ─── Validación de Saldo Insuficiente frente a Liquidez Real ───
+    const totalIngresos = this.incomeSvc.snapshot.reduce((acc, i) => acc + (Number(i.monto) || 0), 0);
+    const totalGastos = this.expenseSvc.snapshot.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+    const totalAhorrado = this.savingsSvc.snapshot.reduce((acc, a) => acc + (Number(a.montoActual) || 0), 0);
+
+    let gastoPrevio = 0;
+    if (this.modoEdicion() && this.gastoEditandoId()) {
+      const g = this.expenseSvc.snapshot.find((item) => item.id === this.gastoEditandoId());
+      if (g) gastoPrevio = Number(g.monto) || 0;
+    }
+
+    const liquidezBaseGTQ = totalIngresos - totalGastos - totalAhorrado + gastoPrevio;
+    const liquidezDisponibleEnMoneda = this.settingsSvc.convertirDesdeGTQ(liquidezBaseGTQ);
+
+    if (montoIngresado > Math.max(0, liquidezDisponibleEnMoneda)) {
+      this.errorSaldoInsuficiente.set(
+        'Operación no permitida: El importe ingresado excede su liquidez disponible actual. No es posible generar saldo negativo.'
+      );
+      return;
+    }
+
+    // Convertir el monto ingresado en la divisa activa a la base GTQ
+    const montoBaseGTQ = Number(this.settingsSvc.convertirHaciaGTQ(montoIngresado).toFixed(2));
+
     const gastoData = {
       concepto: formVal.concepto.trim(),
-      monto: Number(formVal.monto),
+      monto: montoBaseGTQ,
       fecha: formVal.fecha,
       categoria: formVal.categoria,
       metodoPago: formVal.metodoPago,
