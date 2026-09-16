@@ -27,13 +27,22 @@ export class IngresosComponent {
   readonly mostrarSelectorCalendario = signal<boolean>(false);
   readonly simboloMoneda$: Observable<string> = this.settingsSvc.simboloMoneda$;
 
+  // ─── Selector de Vista del Histograma ────────────────────────
+  readonly vistaPeriodo = signal<'semanal' | 'quincenal'>('semanal');
+
   // ─── Observables de métricas directas del servicio ──────────
   readonly totalIngresos$: Observable<number> = this.incomeSvc.totalIngresos$;
   readonly totalNomina$: Observable<number> = this.incomeSvc.totalNomina$;
+  readonly conteoNomina$: Observable<number> = this.incomeSvc.conteoNomina$;
   readonly totalDesarrollo$: Observable<number> = this.incomeSvc.totalDesarrollo$;
   readonly totalConsultoria$: Observable<number> = this.incomeSvc.totalConsultoria$;
   readonly columnasSemanales$: Observable<ColumnaSemanal[]> = this.incomeSvc.columnasSemanales$;
+  readonly columnasQuincenales$: Observable<ColumnaSemanal[]> = this.incomeSvc.columnasQuincenales$;
   readonly promedioSemanal$: Observable<number> = this.incomeSvc.promedioSemanal$;
+
+  setVistaPeriodo(periodo: 'semanal' | 'quincenal'): void {
+    this.vistaPeriodo.set(periodo);
+  }
 
   // ─── Filtros de búsqueda ─────────────────────────────────────
   filtroTexto: string = '';
@@ -80,6 +89,15 @@ export class IngresosComponent {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.mostrarSelectorCalendario.set(false);
     }
+  }
+
+  formatearFechaDisplay(fechaStr: string): string {
+    if (!fechaStr) return '';
+    const partes = fechaStr.split('-');
+    if (partes.length === 3) {
+      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return fechaStr;
   }
 
   actualizarFiltros(): void {

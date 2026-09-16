@@ -111,4 +111,26 @@ describe('DashboardComponent', () => {
     expect(ahorroPostRetiro).toBe(500);
     expect(balancePostRetiro).toBe(3300); // 5000 - 1200 - 500 = 3300
   });
+
+  it('should clear all notifications and reset unread counter to 0', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+
+    component.notificaciones.set([
+      { id: '1', titulo: 'Alerta', mensaje: 'Prueba', leida: false, hora: 'Ahora', tipo: 'alerta' },
+    ]);
+    expect(component.contadorNoLeidas()).toBe(1);
+
+    component.limpiarTodasNotificaciones();
+    expect(component.notificaciones().length).toBe(0);
+    expect(component.contadorNoLeidas()).toBe(0);
+  });
+
+  it('should format date strings properly', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+
+    expect(component.formatearFecha('2026-09-15')).toBe('15/09/2026');
+    expect(component.formatearFecha('')).toBe('');
+  });
 });
