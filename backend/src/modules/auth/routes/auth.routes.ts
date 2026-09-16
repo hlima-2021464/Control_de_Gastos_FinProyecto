@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { loginHandler, refreshTokenHandler } from '../controllers/auth.controller';
 import { authMiddleware } from '../../../middlewares/auth.middleware';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @route  POST /api/auth/login

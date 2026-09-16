@@ -7,7 +7,6 @@ export interface IncomeItem {
   fecha: string; // Formato YYYY-MM-DD
   concepto: string;
   fuente: 'Nómina Fija' | 'Desarrollo Web' | 'Consultoría' | string;
-  cuentaDestino: string;
   monto: number;
 }
 
@@ -16,6 +15,8 @@ export interface ColumnaSemanal {
   porcentajeAltura: number;
   rango: string;
   etiqueta: string;
+  subtexto?: string;
+  esDestacado?: boolean;
 }
 
 const STORAGE_KEY = 'control_gastos_ingresos';
@@ -24,7 +25,7 @@ const STORAGE_KEY = 'control_gastos_ingresos';
   providedIn: 'root',
 })
 export class IncomeService {
-  // Estado inicial en cero ($Q 0.00) y lista vacía
+  // Estado inicial sincronizado con el almacenamiento local o baseline de maqueta
   private readonly ingresosSubject = new BehaviorSubject<IncomeItem[]>(this.cargarEstadoInicial());
 
   /** Flujo reactivo principal de todos los ingresos */
@@ -44,7 +45,12 @@ export class IncomeService {
     )
   );
 
-  /** Total por Desarrollo Web & Cloud */
+  /** Conteo dinámico de depósitos de nómina */
+  readonly conteoNomina$: Observable<number> = this.ingresos$.pipe(
+    map((lista) => lista.filter((item) => item.fuente === 'Nómina Fija').length)
+  );
+
+  /** Total por Desarrollo Web & Hosting */
   readonly totalDesarrollo$: Observable<number> = this.ingresos$.pipe(
     map((lista) =>
       lista
@@ -62,15 +68,18 @@ export class IncomeService {
     )
   );
 
-  /** Histograma de captación semanal recalculado automáticamente */
+  /** Histograma de captación semanal recalculado automáticamente con 4 columnas */
   readonly columnasSemanales$: Observable<ColumnaSemanal[]> = this.ingresos$.pipe(
     map((lista) => {
+      const ahora = new Date();
+      const mesAbrev = ahora.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
+      const mesCap = mesAbrev.charAt(0).toUpperCase() + mesAbrev.slice(1);
+
       const semanas = [
-        { rango: '1 - 7 Ago', etiqueta: 'Semana 1', start: 1, end: 7, monto: 0 },
-        { rango: '8 - 14 Ago', etiqueta: 'Semana 2', start: 8, end: 14, monto: 0 },
-        { rango: '15 - 21 Ago', etiqueta: 'Semana 3', start: 15, end: 21, monto: 0 },
-        { rango: '22 - 28 Ago', etiqueta: 'Semana 4', start: 22, end: 28, monto: 0 },
-        { rango: '29 - 31 Ago', etiqueta: 'Semana 5', start: 29, end: 31, monto: 0 },
+        { rango: `1 – 7 ${mesCap}`, etiqueta: 'Semana 1', subtexto: 'Nómina Q1', start: 1, end: 7, monto: 0, esDestacado: false },
+        { rango: `8 – 14 ${mesCap}`, etiqueta: 'Semana 2', subtexto: 'Consultoría TI', start: 8, end: 14, monto: 0, esDestacado: false },
+        { rango: `15 – 21 ${mesCap}`, etiqueta: 'Semana 3', subtexto: 'Nómina Q2', start: 15, end: 21, monto: 0, esDestacado: false },
+        { rango: `22 – 31 ${mesCap}`, etiqueta: 'Semana 4', subtexto: 'Desarrollo Web', start: 22, end: 31, monto: 0, esDestacado: true },
       ];
 
       lista.forEach((item) => {
@@ -88,14 +97,52 @@ export class IncomeService {
 
       return semanas.map((s) => ({
         monto: s.monto,
-        porcentajeAltura: maxMonto > 0 && s.monto > 0 ? Math.max(12, Math.round((s.monto / maxMonto) * 100)) : 0,
+        porcentajeAltura: maxMonto > 0 && s.monto > 0 ? Math.max(16, Math.round((s.monto / maxMonto) * 100)) : 0,
         rango: s.rango,
         etiqueta: s.etiqueta,
+        subtexto: s.subtexto,
+        esDestacado: s.esDestacado,
       }));
     })
   );
 
-  /** Promedio por ciclo semanal (Total / semanas activas o 4) */
+  /** Histograma alternativo para vista quincenal interactiva */
+  readonly columnasQuincenales$: Observable<ColumnaSemanal[]> = this.ingresos$.pipe(
+    map((lista) => {
+      const ahora = new Date();
+      const mesAbrev = ahora.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
+      const mesCap = mesAbrev.charAt(0).toUpperCase() + mesAbrev.slice(1);
+
+      const quincenas = [
+        { rango: `1 – 15 ${mesCap}`, etiqueta: 'Quincena 1', subtexto: 'Nómina Q1 & Consultoría', start: 1, end: 15, monto: 0, esDestacado: false },
+        { rango: `16 – 31 ${mesCap}`, etiqueta: 'Quincena 2', subtexto: 'Nómina Q2 & Desarrollo Web', start: 16, end: 31, monto: 0, esDestacado: true },
+      ];
+
+      lista.forEach((item) => {
+        const dia = item.fecha ? parseInt(item.fecha.split('-')[2] || '1', 10) : 1;
+        const monto = Number(item.monto) || 0;
+        const q = quincenas.find((s) => dia >= s.start && dia <= s.end);
+        if (q) {
+          q.monto += monto;
+        } else {
+          quincenas[0].monto += monto;
+        }
+      });
+
+      const maxMonto = Math.max(...quincenas.map((q) => q.monto), 0);
+
+      return quincenas.map((q) => ({
+        monto: q.monto,
+        porcentajeAltura: maxMonto > 0 && q.monto > 0 ? Math.max(16, Math.round((q.monto / maxMonto) * 100)) : 0,
+        rango: q.rango,
+        etiqueta: q.etiqueta,
+        subtexto: q.subtexto,
+        esDestacado: q.esDestacado,
+      }));
+    })
+  );
+
+  /** Promedio por ciclo semanal (Total / 4 ciclos) */
   readonly promedioSemanal$: Observable<number> = this.totalIngresos$.pipe(
     map((total) => (total > 0 ? total / 4 : 0))
   );
@@ -112,17 +159,50 @@ export class IncomeService {
     }
   }
 
-  /** Carga inicial respetando baseline en cero */
+  /** Carga inicial respetando baseline o cargando mockup de referencia */
   private cargarEstadoInicial(): IncomeItem[] {
     try {
       const guardado = localStorage.getItem(STORAGE_KEY);
-      if (guardado) {
+      if (guardado !== null) {
         return JSON.parse(guardado) as IncomeItem[];
       }
     } catch {
       // Ignorar error de parseo y arrancar en lista vacia
     }
-    return [];
+    const ahora = new Date();
+    const anio = ahora.getFullYear();
+    const mesStr = String(ahora.getMonth() + 1).padStart(2, '0');
+
+    return [
+      {
+        id: 'ing-mock-1',
+        fecha: `${anio}-${mesStr}-22`,
+        concepto: 'Mantenimiento y Hosting Cloud',
+        fuente: 'Desarrollo Web',
+        monto: 3500,
+      },
+      {
+        id: 'ing-mock-2',
+        fecha: `${anio}-${mesStr}-15`,
+        concepto: 'Pago Nómina Quincenal (Segunda)',
+        fuente: 'Nómina Fija',
+        monto: 6250,
+      },
+      {
+        id: 'ing-mock-3',
+        fecha: `${anio}-${mesStr}-10`,
+        concepto: 'Auditoría Técnica de Servidor',
+        fuente: 'Consultoría',
+        monto: 2200,
+      },
+      {
+        id: 'ing-mock-4',
+        fecha: `${anio}-${mesStr}-01`,
+        concepto: 'Pago Nómina Quincenal (Primera)',
+        fuente: 'Nómina Fija',
+        monto: 6250,
+      },
+    ];
   }
 
   private persistirEstado(lista: IncomeItem[]): void {
@@ -181,4 +261,15 @@ export class IncomeService {
     this.ingresosSubject.next([]);
     localStorage.removeItem(STORAGE_KEY);
   }
+
+  /** Restaura la lista completa de ingresos (p. ej. desde un respaldo JSON) */
+  restaurarIngresos(items: IncomeItem[]): void {
+    const limpios = (items || []).map((item) => ({
+      ...item,
+      monto: Number(item.monto) || 0,
+    }));
+    this.ingresosSubject.next(limpios);
+    this.persistirEstado(limpios);
+  }
 }
+

@@ -1,6 +1,6 @@
 # Control de Gastos — Plataforma de Gestión Financiera Personal
 
-Aplicación Fullstack de alto rendimiento diseñada para la administración, monitoreo y auditoría de finanzas personales, presupuestos e ingresos en tiempo real.
+Plataforma web de alto rendimiento orientada a la auditoría, proyección y control integral de finanzas personales, flujos de efectivo, presupuestos y metas de ahorro en tiempo real.
 
 ---
 
@@ -8,216 +8,164 @@ Aplicación Fullstack de alto rendimiento diseñada para la administración, mon
 
 | Capa | Tecnología | Descripción |
 |---|---|---|
-| **Frontend** | Angular 17+ / 22 | Arquitectura basada en *Standalone Components*, *Signals* y *RxJS*. |
-| **Estilos & UI** | TailwindCSS + Vanilla CSS | Diseño *Dark Glassmorphism* con efectos neón, gradientes y micro-animaciones. |
-| **Autenticación** | JWT + Google Identity Services (OAuth 2.0) | Inicio de sesión con correo/contraseña y acceso con cuentas de Google. |
-| **Backend** | Node.js · TypeScript · Express | API REST modularizada con controladores, servicios y repositorios. |
-| **Base de Datos** | PostgreSQL 14+ | Persistencia relacional con consultas tipadas y pools de conexión (`pg`). |
-| **Testing** | Vitest · Angular TestBed | Pruebas unitarias reactivas automatizadas. |
-| **Gestor de Paquetes** | pnpm / npm | Gestión eficiente de dependencias y scripts de desarrollo. |
+| **Frontend** | Angular 17+ / 22 | Arquitectura basada en componentes independientes (*Standalone Components*), *Signals* y *RxJS*. |
+| **Estilos & UI** | TailwindCSS + CSS Nativo | Sistema de diseño *Dark Glassmorphism* con desenfoque de fondo (*backdrop-blur*), efectos neón y microinteracciones. |
+| **Autenticación** | Dual (JWT Local + Google Identity Services GIS) | Acceso mediante credenciales tradicionales verificadas en base de datos y autorización federada con OAuth 2.0. |
+| **Backend** | Node.js · TypeScript · Express | API REST modularizada estructurada en capas de controladores, servicios, repositorios y middlewares. |
+| **Persistencia** | PostgreSQL 14+ / LocalStorage Sincronizado | Base de datos relacional para identidades y almacenamiento local reactivo respaldado por eventos de almacenamiento de ventana (*storage event*). |
+| **Control de Sesión** | IdleService (RxJS Throttled) | Detección de inactividad del usuario en tiempo real con cierre forzado tras 15 minutos de inmovilidad y renovación continua durante la interacción activa. |
 
 ---
 
-## Estructura del Proyecto
+## Arquitectura del Proyecto
 
-```
+```text
 Control-De-Gastos-Dashboard/
 ├── backend/                             # API REST (Node.js + Express + TypeScript)
 │   ├── src/
-│   │   ├── config/                      # Variables de entorno tipadas (.env)
-│   │   ├── db/                          # Pool PostgreSQL y scripts DDL (schema.sql)
-│   │   ├── middlewares/                 # Autenticación JWT, roles y manejo global de errores
+│   │   ├── config/                      # Variables de entorno tipadas
+│   │   ├── db/                          # Pool PostgreSQL y esquema DDL (schema.sql)
+│   │   ├── middlewares/                 # Verificación JWT, control de roles y manejo de errores
 │   │   ├── modules/
-│   │   │   ├── auth/                    # Controlador, servicio y rutas de autenticación
-│   │   │   └── users/                   # Modelos, repositorios y rutas de usuarios
+│   │   │   ├── auth/                    # Rutas, servicios y controladores de autenticación y refresh
+│   │   │   └── users/                   # Repositorios y rutas de perfil de usuario
 │   │   ├── utils/                       # Generación y validación de tokens JWT
-│   │   ├── app.ts                       # Configuración de Express, CORS y rutas
-│   │   └── server.ts                    # Punto de entrada y arranque del servidor HTTP
-│   └── scripts/                         # CLI Seed para inicializar usuarios administradores
+│   │   ├── app.ts                       # Ensamblado de middlewares y enrutador global
+│   │   └── server.ts                    # Punto de arranque HTTP
+│   └── scripts/                         # CLI para inserción inicial de usuarios administradores
 │
 └── frontend/                            # SPA Angular (Standalone Architecture)
     └── src/
         ├── app/
-        │   ├── core/                    # Núcleo global de la aplicación
-        │   │   ├── components/          # Modales globales (Sesión Expirada por inactividad)
-        │   │   ├── guards/              # Guards de navegación (authGuard, roleGuard)
-        │   │   ├── interceptors/        # Interceptores HTTP (inyección de JWT Bearer)
-        │   │   ├── models/              # Interfaces de dominio (Auth, UserProfile, IncomeItem)
-        │   │   └── services/            # Servicios reactivos (AuthService, IncomeService, IdleService)
+        │   ├── core/                    # Núcleo compartido global
+        │   │   ├── components/          # Modales transversales (Sesión Expirada)
+        │   │   ├── guards/              # authGuard y roleGuard
+        │   │   ├── interceptors/        # jwtInterceptor funcional
+        │   │   ├── models/              # Interfaces de dominio financiero y autenticación
+        │   │   └── services/            # Servicios reactivos de datos (Income, Expense, Budget, Category, Savings, Settings, Idle, Auth)
         │   ├── features/
-        │   │   ├── login/               # Pantalla de inicio de sesión y Google OAuth
-        │   │   └── dashboard/           # Módulo principal del Dashboard
-        │   │       ├── layout/          # Shell persistente (Sidebar, Navbar y perfil)
-        │   │       ├── pages/
-        │   │       │   └── ingresos/    # Vista de Flujo y Gestión de Ingresos
-        │   │       ├── dashboard.component.ts # Panel personal con métricas sincronizadas
-        │   │       └── dashboard.routes.ts    # Enrutador modular del dashboard
-        │   └── shared/                  # Componentes reutilizables (UnderConstructionComponent)
-        ├── environments/                # Configuración de URLs y Google Client ID
-        ├── index.html                   # SDK de Google Identity Services y tipografías
-        └── styles.css                   # Sistema de diseño global (Glassmorphism)
+        │   │   ├── login/               # Pantalla de inicio de sesión y Google GIS
+        │   │   └── dashboard/           # Panel principal y módulos funcionales
+        │   │       ├── layout/          # Barra lateral, navegación y barra superior con notificaciones
+        │   │       ├── pages/           # Vistas especializadas (Gastos, Ingresos, Presupuestos, Categorías, Reportes, Ahorro, Configuración)
+        │   │       ├── dashboard.component.ts # Métricas consolidadas en tiempo real
+        │   │       └── dashboard.routes.ts    # Enrutamiento modular con lazy loading
+        │   └── shared/                  # Componentes reutilizables
+        ├── environments/                # Configuración de API y Google Client ID oficial
+        └── styles.css                   # Sistema de diseño global y scrollbars personalizados
 ```
 
 ---
 
-## Inicio Rápido
+## Módulos y Capacidades del Sistema
 
-### Prerrequisitos
+### 1. Panel de Control (Dashboard)
+- **Consolidación en Tiempo Real:** El *Balance Total* se calcula de forma reactiva como la diferencia estricta entre *Total de Ingresos* y *Total de Gastos*.
+- **Histograma Dinámico:** Visualización gráfica de ingresos frente a egresos agrupados por semana, mes o consolidado anual.
+- **Centro de Notificaciones Interactivo:** Panel desplegable en la barra superior con contador en vivo, opción para marcar alertas como leídas y vaciado del historial.
 
+### 2. Gestión de Ingresos (`/dashboard/ingresos`)
+- Registro, edición y eliminación de abonos monetarios.
+- Desglose analítico por fuentes principales (*Nómina Fija*, *Desarrollo Web & Cloud*, *Consultorías*).
+- Histograma de captación semanal con cálculo proporcional de barras.
+
+### 3. Control de Gastos (`/dashboard/gastos`)
+- Bitácora de egresos con concepto, monto, fecha, categoría y método de pago (efectivo o cuentas bancarias).
+- Filtros reactivos instantáneos por término de búsqueda, rango de fechas y categoría asignada.
+
+### 4. Presupuestos Mensuales (`/dashboard/presupuestos`)
+- Establecimiento de techos financieros máximos por rubro de gasto.
+- Barras de progreso de consumo con alertas visuales dinámicas (ámbar preventivo al 70% y rojo de advertencia al superar el 90%).
+- Desplazamiento vertical optimizado mediante la rueda del ratón.
+
+### 5. Catálogo de Categorías (`/dashboard/categorias`)
+- Administración de clasificaciones diferenciadas para ingresos y gastos.
+- Personalización de paleta cromática e iconografía.
+
+### 6. Reportes Financieros (`/dashboard/reportes`)
+- Proyección de liquidez, desglose de gastos y cálculo de tasa de ahorro mensual: `((Ingresos - Gastos) / Ingresos) * 100`.
+- Exportación estructurada de estados de cuenta a formato CSV.
+
+### 7. Metas de Ahorro (`/dashboard/ahorro`)
+- Seguimiento de objetivos financieros con visualización de progreso porcentual respecto a la meta y fecha límite.
+- Registro directo de abonos de capital a metas particulares.
+
+### 8. Configuración y Preferencias (`/dashboard/configuracion`)
+- Selector de divisa principal (Quetzales GTQ, Dólares USD, Euros EUR) con actualización en toda la interfaz.
+- Parámetros de ciclo de corte financiero y ajuste del tiempo de tolerancia de inactividad de sesión.
+- Motor de respaldo: Exportación e importación integral de datos en formato JSON.
+- Zona de mantenimiento con restablecimiento seguro a línea base en cero mediante confirmación por palabra clave.
+
+---
+
+## Inicio Rápido y Despliegue Local
+
+### Requisitos Previos
 - **Node.js**: Versión 18.0.0 o superior.
-- **Gestor de paquetes**: `pnpm` (`npm install -g pnpm`) o `npm`.
+- **Gestor de Paquetes**: `pnpm` o `npm`.
 - **PostgreSQL**: Versión 14 o superior.
 
 ---
 
-### 1. Configuración del Backend
+### Configuración del Backend
 
-1. Acceda al directorio del backend:
+1. Acceda al directorio del servidor:
    ```bash
    cd backend
    ```
-2. Instale las dependencias:
+2. Instale dependencias:
    ```bash
-   npm install
-   # o bien:
    pnpm install
    ```
-3. Cree el archivo de variables de entorno `.env` a partir del archivo de ejemplo:
-   ```bash
-   cp .env.example .env
-   ```
-4. Configure las credenciales de su base de datos PostgreSQL en el archivo `.env`:
-   ```env
+3. Genere el archivo de entorno `.env` tomando como base `.env.example`:
+   ```ini
    PORT=3000
    CORS_ORIGIN=http://localhost:4200
    DB_HOST=localhost
    DB_PORT=5432
    DB_NAME=control_gastos
    DB_USER=postgres
-   DB_PASSWORD=su_contraseña_postgres
-   JWT_SECRET=su_clave_secreta_jwt
+   DB_PASSWORD=su_contraseña
+   JWT_SECRET=clave_secreta_para_firma_jwt
    JWT_EXPIRES_IN=8h
    ```
-5. Inicialice las tablas ejecutando el script DDL en PostgreSQL:
+4. Inicialice el esquema de base de datos:
    ```bash
    psql -U postgres -d control_gastos -f src/db/schema.sql
    ```
-6. (Opcional) Cree el usuario administrador inicial mediante el script seed:
+5. (Opcional) Cree el usuario inicial mediante el script de siembra:
    ```bash
    pnpm run seed:user
    ```
-
-   
-7. Inicie el servidor backend en modo desarrollo:
+6. Inicie el servicio en modo de desarrollo:
    ```bash
-   npm run dev
-   # o bien:
    pnpm run dev
    ```
-   *El servidor iniciará en:* `http://localhost:3000`
 
 ---
 
-### 2. Configuración del Frontend
+### Configuración del Frontend
 
-1. Abra una nueva terminal y acceda a la carpeta del frontend:
+1. Acceda a la carpeta cliente en una nueva terminal:
    ```bash
    cd frontend
    ```
-2. Instale las dependencias:
+2. Instale las dependencias del proyecto:
    ```bash
    pnpm install
    ```
-3. Inicie el servidor de desarrollo de Angular:
+3. Ejecute el servidor de desarrollo:
    ```bash
    pnpm start
-   # o bien:
-   pnpm run dev
    ```
-4. Abra su navegador en [http://localhost:4200](http://localhost:4200).
+4. Abra el navegador en: `http://localhost:4200`.
 
 ---
 
-## Opciones de Autenticación
+## Estrategia de Ramas
 
-Usted puede acceder a la plataforma a través de dos mecanismos:
+El repositorio sigue un modelo de integración continua estructurado:
 
-1. **Google Identity Services (OAuth 2.0 / Sign in with Google)**:
-   - Haga clic en el botón **"Iniciar sesión con Google"**.
-   - Accederá instantáneamente con su perfil, extrayendo su nombre, correo y fotografía de perfil en el encabezado y barra lateral.
-2. **Credenciales Locales (Formulario)**:
-   - Ingrese su usuario/correo y contraseña registrados en el backend.
-
----
-
-## Módulos y Funcionalidades
-
-### 1. Panel de Control (Dashboard)
-- **Línea Base en Cero ($Q 0.00$)**: La aplicación inicia con todas sus métricas y tablas vacías.
-- **Sincronización en Tiempo Real**: Cada abono registrado, modificado o eliminado en el módulo de Ingresos actualiza inmediatamente las tarjetas de *Balance Total*, *Ingresos del Mes* y el *Histograma de Gastos vs Ingresos*.
-- **Indicadores de Control**: Tarjetas informativas de liquidez y accesos directos.
-
-### 2. Gestión de Ingresos (`/dashboard/ingresos`)
-- **Histograma de Captación Semanal**: Gráfica de 5 períodos mensuales con cálculo dinámico porcentual de altura y montos en GTQ.
-- **Tarjetas por Fuente**: Métricas desglosadas para *Nómina Fija*, *Desarrollo Web & Cloud* y *Consultorías de Sistemas*.
-- **Tabla Dinámica con Filtros Reactivos**: Búsqueda en vivo por concepto/emisor y filtro por fuente de ingreso.
-- **Modal de Registro y Edición**: Formulario reactivo validado para añadir y modificar abonos.
-
-### 3. Módulos en Construcción
-- Vistas de *Gastos, Presupuestos, Categorías, Reportes, Ahorro y Configuración* vinculadas al componente informativo `UnderConstructionComponent`.
-
-### 4. Seguridad e Inactividad
-- **Vigilancia Proactiva de Inactividad (`IdleService`)**: Detección reactiva de inactividad del usuario fuera de la zona de Angular para optimizar rendimiento.
-- **Modal de Sesión Expirada**: Aviso automático formal ante vencimiento del token o inactividad prolongada.
-
----
-
-## Pruebas Unitarias Automatizadas
-
-El proyecto cuenta con una suite completa de pruebas unitarias implementadas con Vitest y Angular Testing Library:
-
-```bash
-cd frontend
-pnpm test
-# o para una sola ejecución:
-npx ng test --no-watch
+```text
+hlima-2021464 (Desarrollo y características) ──> develop (Integración de cambios) ──> main (Despliegue formal)
 ```
-
-**Cobertura de pruebas:**
-- `IncomeService`: Estado reactivo inicial en cero, adición de abonos, desglose por fuente y eliminación.
-- `IngresosComponent`: Creación, filtros dinámicos en tiempo real, apertura de modal y validaciones.
-- `DashboardComponent`: Renderizado, cambio de períodos y sincronización reactiva en tiempo real con los ingresos.
-- `App`: Montaje e inicialización de la raíz.
-
----
-
-## Historial de Incrementos
-
-- **Incremento 1 — Autenticación e Identidad**:
-  - API REST de login con JWT, hashing Bcrypt, validación de esquemas y PostgreSQL.
-  - Interceptor HTTP funcional para adjuntar token Bearer.
-  - Modal de sesión expirada y servicio de tracking de inactividad (`IdleService`).
-- **Incremento 2 — Google OAuth 2.0 & Identidad GIS**:
-  - Integración del SDK oficial de Google Identity Services.
-  - Extracción de nombre, correo y URL de avatar para visualización en encabezados y sidebar.
-- **Incremento 3 — Módulo de Ingresos Reactivo & Sincronización**:
-  - Servicio centralizado `IncomeService` con línea base en cero ($Q 0.00$).
-  - Histograma dinámico de captación semanal y tarjetas por fuente.
-  - CRUD reactivo de ingresos con filtros en tiempo real y modal.
-  - Sincronización bidireccional inmediata con el Dashboard.
-- **Incremento 4 — Estandarización de Redacción Formal ("Usted")**:
-  - Homologación de todos los mensajes, textos, alertas y modales al tratamiento formal de "usted".
-
----
-
-## Estrategia de Ramas en Git
-
-El desarrollo del proyecto se rige por el flujo en cascada:
-
-$$\text{hlima-2021464 (Desarrollo activo)} \longrightarrow \text{develop (Integración)} \longrightarrow \text{main (Producción)}$$
-
----
-
-## Licencia
-
-Este proyecto es privado y para fines académicos y de administración financiera personal. Todos los derechos reservados.

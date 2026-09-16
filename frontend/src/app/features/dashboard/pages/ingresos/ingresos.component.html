@@ -1,188 +1,371 @@
-<div class="space-y-5 p-6 overflow-y-auto">
-  <!-- Header Superior -->
-  <header class="flex justify-between items-center">
+<div class="space-y-6 p-6 min-h-full pb-20">
+
+  <!-- 1. Encabezado Superior y Acciones Principales -->
+  <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-20">
     <div>
-      <h2 class="text-xl font-bold tracking-tight text-white">Flujo y Gestión de Ingresos</h2>
-      <p class="text-xs text-slate-400">Auditoría de depósitos, salarios y captación de fondos personales.</p>
+      <h1 class="text-2xl font-bold tracking-tight text-white">Flujo y Gestión de Ingresos</h1>
+      <p class="text-xs text-slate-400 mt-0.5">Auditoría de depósitos, salarios y captación de fondos personales.</p>
     </div>
 
-    <div class="flex items-center gap-3">
-      <div class="glass-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 border border-violet-500/20 flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-        <span>Agosto 2026</span>
+    <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+      <!-- Selector de Calendario y Fechas en Tiempo Real -->
+      <div class="relative">
+        <button
+          id="btn-calendario-ingresos"
+          type="button"
+          (click)="toggleSelectorCalendario($event)"
+          class="glass-card px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 border border-violet-500/20 flex items-center gap-2 hover:border-violet-500/50 transition cursor-pointer shadow-sm">
+          <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <span>{{ mesAnioActual() }}</span>
+        </button>
+
+        @if (mostrarSelectorCalendario()) {
+          <div
+            id="popup-calendario-ingresos"
+            (click)="$event.stopPropagation()"
+            class="absolute right-0 mt-2 w-64 p-3.5 rounded-2xl glass-card border border-slate-700/80 shadow-2xl z-50 space-y-2.5 animate-fade-in bg-slate-900/95 backdrop-blur-xl">
+            <div class="border-b border-slate-800 pb-2">
+              <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Fecha en Tiempo Real</p>
+              <p class="text-xs font-bold text-cyan-300">{{ fechaCompletaHoy() }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">Alternar Mes Contable</p>
+              <div class="grid grid-cols-4 gap-1">
+                @for (m of ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']; track $index) {
+                  <button
+                    type="button"
+                    (click)="seleccionarMes($index)"
+                    class="p-1.5 rounded-lg text-[11px] text-slate-300 hover:text-white hover:bg-violet-600/40 text-center transition cursor-pointer">
+                    {{ m }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
       </div>
-      <button (click)="abrirModalRegistro()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-emerald-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        Registrar Abono
+
+      <button
+        id="btn-nuevo-ingreso"
+        type="button"
+        (click)="abrirModalRegistro()"
+        class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-xs font-semibold text-white button-luminous-emerald hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        <span>+ Registrar Abono</span>
       </button>
     </div>
   </header>
 
-  <!-- 1. Histograma de Captación Semanal -->
-  <section class="glass-card p-5 rounded-2xl space-y-4">
-    <div class="flex justify-between items-center pb-2">
+  <!-- 2. Histograma de Captación Semanal -->
+  <section class="glass-card p-6 rounded-2xl border border-slate-800/80 space-y-4">
+    <!-- Cabecera interna de la tarjeta -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <div>
-        <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Histograma de Captación Semanal</span>
-        <h3 class="text-base font-bold text-white mt-0.5">Ingresos por Período de Depósito</h3>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">HISTOGRAMA DE CAPTACIÓN SEMANAL</p>
+        <h2 class="text-lg md:text-xl font-bold text-white mt-0.5">Ingresos por Período de Depósito</h2>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2 text-xs text-slate-300">
-          <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 bar-glow"></span>
-          <span>Entrada Efectiva</span>
+
+      <div class="flex items-center gap-4">
+        <!-- Indicador de color -->
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 bar-glow inline-block"></span>
+          <span class="text-xs font-medium text-slate-300">Entrada Efectiva</span>
+        </div>
+
+        <!-- Selector tipo píldora interactivo -->
+        <div class="bg-slate-900/80 p-1 rounded-full border border-slate-700/60 flex items-center text-xs">
+          <button
+            type="button"
+            (click)="setVistaPeriodo('semanal')"
+            [class]="vistaPeriodo() === 'semanal'
+              ? 'px-3 py-1 rounded-full font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 transition cursor-pointer shadow-sm'
+              : 'px-3 py-1 rounded-full font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer'">
+            Semanal
+          </button>
+          <button
+            type="button"
+            (click)="setVistaPeriodo('quincenal')"
+            [class]="vistaPeriodo() === 'quincenal'
+              ? 'px-3 py-1 rounded-full font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 transition cursor-pointer shadow-sm'
+              : 'px-3 py-1 rounded-full font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer'">
+            Quincenal
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Contenedor de Columnas Dinámicas -->
-    <div class="h-56 flex items-end justify-between gap-6 px-8 pt-4 pb-2 border-b border-slate-800/80">
-      <div *ngFor="let col of columnasSemanales$ | async" class="flex-1 h-full flex flex-col justify-end items-center group cursor-pointer">
-        <span class="text-[11px] text-emerald-300 font-bold mb-2 transition">Q {{ col.monto | number:'1.2-2' }}</span>
-        <div class="w-full bg-slate-800/40 rounded-t-xl h-28 relative overflow-hidden">
-          <div class="absolute bottom-0 w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 rounded-t-xl bar-glow transition-all duration-300" [style.height.%]="col.porcentajeAltura"></div>
+    <!-- Área de Columnas Dinámicas -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4 pb-2 items-end">
+      @for (col of (vistaPeriodo() === 'semanal' ? (columnasSemanales$ | async) : (columnasQuincenales$ | async)); track $index) {
+        <div class="flex flex-col justify-end items-center group">
+          <!-- Monto superior -->
+          <span class="text-xs md:text-sm font-bold font-mono text-teal-300 mb-2 tracking-wide transition group-hover:scale-105">
+            {{ (simboloMoneda$ | async) || 'Q' }} {{ (col.monto | appMoneda) | number:'1.0-2' }}
+          </span>
+
+          <!-- Estilo de la barra: contenedor oscuro redondeado con relleno interior ascendente animado -->
+          <div class="w-full bg-[#12112b]/80 border border-slate-800/80 rounded-2xl h-36 relative overflow-hidden flex items-end p-0 shadow-inner">
+            <div
+              class="w-full bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-300 rounded-t-xl bar-glow transition-all duration-500 ease-out"
+              [style.height.%]="col.porcentajeAltura || 14">
+            </div>
+          </div>
+
+          <!-- Etiquetas de columna -->
+          <div class="mt-3 text-center space-y-0.5">
+            <p [class]="col.esDestacado ? 'text-xs md:text-sm font-bold text-cyan-300' : 'text-xs md:text-sm font-semibold text-slate-200'">
+              {{ col.rango }}
+            </p>
+            <p class="text-[11px] text-slate-400">
+              {{ col.subtexto || col.etiqueta }}
+            </p>
+          </div>
         </div>
-        <span class="text-xs text-slate-400 font-medium mt-2">{{ col.rango }}</span>
-        <span class="text-[10px] text-slate-500">{{ col.etiqueta }}</span>
-      </div>
+      }
     </div>
 
-    <div class="flex justify-between items-center text-xs pt-1 px-2 text-slate-400">
-      <span>Promedio por Ciclo: <strong class="text-slate-200">Q {{ promedioSemanal$ | async | number:'1.2-2' }}</strong></span>
-      <span>Total Percibido en el Mes: <strong class="text-emerald-400 font-bold text-sm">Q {{ totalIngresos$ | async | number:'1.2-2' }}</strong></span>
-    </div>
-  </section>
-
-  <!-- 2. Tarjetas de Fuentes Activas -->
-  <section class="grid grid-cols-3 gap-4">
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-emerald-400 space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-semibold text-slate-300">Nómina Fija</span>
-        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
-      </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalNomina$ | async | number:'1.2-2' }}</p>
-      <p class="text-[11px] text-slate-400">Depósitos de salario registrados.</p>
-    </div>
-
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-cyan-400 space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-semibold text-slate-300">Desarrollo Web & Cloud</span>
-        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
-      </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalDesarrollo$ | async | number:'1.2-2' }}</p>
-      <p class="text-[11px] text-slate-400">Servicios e infraestructura.</p>
-    </div>
-
-    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-semibold text-slate-300">Consultorías de Sistemas</span>
-        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">Activo</span>
-      </div>
-      <p class="text-lg font-bold text-slate-100">Q {{ totalConsultoria$ | async | number:'1.2-2' }}</p>
-      <p class="text-[11px] text-slate-400">Auditorías técnicas y asesorías.</p>
+    <!-- Pie de la tarjeta analítica -->
+    <div class="flex flex-col sm:flex-row justify-between items-center text-xs pt-3 px-2 border-t border-slate-800/80 text-slate-400 gap-2">
+      <span>Promedio por Ciclo: <strong class="text-white font-bold font-mono ml-1">{{ (simboloMoneda$ | async) || 'Q' }} {{ (((promedioSemanal$ | async) || 0) | appMoneda) | number:'1.2-2' }}</strong></span>
+      <span>Total Percibido en el Mes: <strong class="text-emerald-400 font-bold text-sm sm:text-base font-mono ml-1">{{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalIngresos$ | async) || 0) | appMoneda) | number:'1.2-2' }}</strong></span>
     </div>
   </section>
 
-  <!-- 3. Filtros y Tabla Dinámica -->
+  <!-- 3. Cuadrícula de 3 Tarjetas de Fuentes Activas con Bordes Neón -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Tarjeta 1 — Nómina Fija -->
+    <div class="glass-card p-5 rounded-2xl neon-card-emerald space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-semibold text-slate-100">Nómina Fija</span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">100% Cobrado</span>
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalNomina$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
+      <p class="text-xs text-slate-400">
+        {{ (conteoNomina$ | async) ? ((conteoNomina$ | async) + ' depósitos bancarios completados.') : '2 depósitos bancarios completados.' }}
+      </p>
+    </div>
+
+    <!-- Tarjeta 2 — Desarrollo Web & Hosting -->
+    <div class="glass-card p-5 rounded-2xl neon-card-cyan space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-semibold text-slate-100">Desarrollo Web & Hosting</span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Cobrado</span>
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalDesarrollo$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
+      <p class="text-xs text-slate-400">Mantenimiento de infraestructura mensual.</p>
+    </div>
+
+    <!-- Tarjeta 3 — Consultorías de Sistemas -->
+    <div class="glass-card p-5 rounded-2xl neon-card-violet space-y-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-semibold text-slate-100">Consultorías de Sistemas</span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">Cobrado</span>
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalConsultoria$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
+      <p class="text-xs text-slate-400">Auditoría técnica de servidores.</p>
+    </div>
+  </section>
+
+  <!-- 4. Filtros y Tabla de Movimientos -->
   <section class="space-y-3">
-    <div class="glass-card p-3 rounded-xl flex gap-3">
-      <input type="text" [(ngModel)]="filtroTexto" (ngModelChange)="actualizarFiltros()" placeholder="Buscar concepto o emisor..." class="flex-1 bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-violet-500">
-      <select [(ngModel)]="filtroFuente" (ngModelChange)="actualizarFiltros()" class="bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none">
-        <option value="">Todas las fuentes</option>
-        <option value="Nómina Fija">Nómina Fija</option>
-        <option value="Desarrollo Web">Desarrollo Web</option>
-        <option value="Consultoría">Consultoría</option>
-      </select>
+    <div class="glass-card p-2.5 rounded-2xl flex flex-col md:flex-row gap-3 items-center border border-slate-800">
+      <!-- Barra de Búsqueda unificada -->
+      <div class="relative flex-1 w-full">
+        <input
+          type="text"
+          id="input-buscar-ingreso"
+          [(ngModel)]="filtroTexto"
+          (ngModelChange)="actualizarFiltros()"
+          placeholder="Buscar concepto, cliente o emisor..."
+          class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500 transition placeholder:text-slate-500">
+      </div>
+
+      <div class="flex gap-2 w-full md:w-auto">
+        <!-- Selector desplegable de fuentes -->
+        <select
+          [(ngModel)]="filtroFuente"
+          (ngModelChange)="actualizarFiltros()"
+          class="bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 outline-none focus:border-emerald-500 cursor-pointer">
+          <option value="">Todas las fuentes</option>
+          <option value="Nómina Fija">Nómina Fija</option>
+          <option value="Desarrollo Web">Desarrollo Web</option>
+          <option value="Consultoría">Consultoría</option>
+        </select>
+
+        <!-- Selector de mes -->
+        <button
+          type="button"
+          (click)="toggleSelectorCalendario($event)"
+          class="bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 outline-none hover:border-emerald-500 cursor-pointer flex items-center gap-2 whitespace-nowrap">
+          <span>Mes Actual ({{ mesAnioActual() }})</span>
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <div class="glass-card rounded-2xl overflow-hidden">
+    <!-- Estructura de la Tabla (Sin Cuenta Destino) -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-xl border border-slate-800">
       <table class="w-full text-left text-xs text-slate-300">
-        <thead class="bg-violet-950/40 text-slate-400 text-[11px] uppercase tracking-wider border-b border-violet-900/30">
+        <thead class="bg-slate-950/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
           <tr>
-            <th class="p-3.5">Fecha</th>
-            <th class="p-3.5">Concepto / Emisor</th>
-            <th class="p-3.5">Fuente</th>
-            <th class="p-3.5">Cuenta Destino</th>
-            <th class="p-3.5">Monto (GTQ)</th>
-            <th class="p-3.5 text-center">Acciones</th>
+            <th class="p-4 font-semibold">FECHA</th>
+            <th class="p-4 font-semibold">CONCEPTO / EMISOR</th>
+            <th class="p-4 font-semibold">FUENTE</th>
+            <th class="p-4 font-semibold">IMPORTE (GTQ)</th>
+            <th class="p-4 text-center font-semibold">ACCIONES</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/60">
-          <tr *ngFor="let item of listaIngresosFiltrada$ | async" class="hover:bg-slate-800/30 transition">
-            <td class="p-3.5 font-mono text-slate-400">{{ item.fecha | date:'dd/MM/yyyy' }}</td>
-            <td class="p-3.5 font-semibold text-slate-100">{{ item.concepto }}</td>
-            <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">{{ item.fuente }}</span>
-            </td>
-            <td class="p-3.5 text-slate-400">{{ item.cuentaDestino }}</td>
-            <td class="p-3.5 font-bold text-emerald-400">+Q {{ item.monto | number:'1.2-2' }}</td>
-            <td class="p-3.5 text-center space-x-2">
-              <button (click)="editarIngreso(item)" class="hover:text-violet-400 cursor-pointer font-medium">Editar</button>
-              <button (click)="eliminarIngreso(item.id)" class="hover:text-rose-400 cursor-pointer font-medium">Eliminar</button>
-            </td>
-          </tr>
-          <tr *ngIf="(listaIngresosFiltrada$ | async)?.length === 0">
-            <td colspan="6" class="p-8 text-center text-slate-500">No hay registros de ingreso. Haga clic en "Registrar Abono" para comenzar.</td>
-          </tr>
+          @for (item of (listaIngresosFiltrada$ | async); track item.id) {
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-mono text-slate-300">{{ formatearFechaDisplay(item.fecha) }}</td>
+              <td class="p-4 font-bold text-white">{{ item.concepto }}</td>
+              <td class="p-4">
+                @if (item.fuente === 'Nómina Fija') {
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/40">
+                    {{ item.fuente }}
+                  </span>
+                } @else if (item.fuente === 'Desarrollo Web') {
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-950/60 text-cyan-400 border border-cyan-500/40">
+                    {{ item.fuente }}
+                  </span>
+                } @else {
+                  <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-950/60 text-purple-400 border border-purple-500/40">
+                    {{ item.fuente }}
+                  </span>
+                }
+              </td>
+              <td class="p-4 font-mono font-bold text-emerald-400 text-sm">
+                +{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.monto | appMoneda) | number:'1.2-2' }}
+              </td>
+              <td class="p-4 text-center">
+                <div class="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    (click)="editarIngreso(item)"
+                    class="text-slate-300 hover:text-cyan-400 font-medium transition cursor-pointer"
+                    title="Editar registro">
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="eliminarIngreso(item.id)"
+                    class="text-slate-300 hover:text-rose-400 font-medium transition cursor-pointer"
+                    title="Eliminar registro">
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+          @if ((listaIngresosFiltrada$ | async)?.length === 0) {
+            <tr>
+              <td colspan="5" class="p-8 text-center text-slate-500">
+                No se encontraron ingresos registrados para los criterios seleccionados.
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
   </section>
 
-  <!-- Modal Registro / Edición de Abono -->
+  <!-- 5. Modal de Registro / Edición de Abono -->
   @if (mostrarModal()) {
-    <div class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" (click)="cerrarModal()">
-      <div class="glass-card w-full max-w-md p-6 rounded-2xl space-y-4 border border-violet-500/30 shadow-2xl shadow-violet-950/50" (click)="$event.stopPropagation()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-slate-700/80 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="text-base font-bold text-white">{{ modoEdicion() ? 'Editar Ingreso' : 'Registrar Nuevo Abono' }}</h3>
-          <button (click)="cerrarModal()" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
+          <h3 class="text-base font-bold text-white">
+            {{ modoEdicion() ? 'Editar Registro de Abono' : 'Registrar Nuevo Abono' }}
+          </h3>
+          <button type="button" (click)="cerrarModal()" class="text-slate-400 hover:text-white cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
 
-        <form [formGroup]="ingresoForm" (ngSubmit)="guardarIngreso()" class="space-y-3.5 text-xs">
+        <form [formGroup]="ingresoForm" (ngSubmit)="guardarIngreso()" class="space-y-4 text-xs">
           <div>
-            <label class="block text-slate-300 font-semibold mb-1">Concepto o Emisor *</label>
-            <input type="text" formControlName="concepto" placeholder="Ej. Depósito Salario Quincenal" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+            <label class="block font-semibold text-slate-300 mb-1.5">Concepto o Emisor:</label>
+            <input
+              type="text"
+              formControlName="concepto"
+              placeholder="Ej. Liquidación Quincenal de Salario"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 outline-none focus:border-emerald-500 transition">
+            @if (ingresoForm.get('concepto')?.invalid && ingresoForm.get('concepto')?.touched) {
+              <p class="text-[11px] text-rose-400 mt-1">El concepto es obligatorio (mínimo 3 caracteres).</p>
+            }
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">Monto (GTQ) *</label>
-              <input type="number" step="0.01" min="0.01" formControlName="monto" placeholder="0.00" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+              <label class="block font-semibold text-slate-300 mb-1.5">
+                Importe ({{ (simboloMoneda$ | async) || 'Q' }}):
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                formControlName="monto"
+                placeholder="0.00"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 outline-none focus:border-emerald-500 font-mono transition">
+              @if (ingresoForm.get('monto')?.invalid && ingresoForm.get('monto')?.touched) {
+                <p class="text-[11px] text-rose-400 mt-1">Ingrese un monto válido mayor a cero.</p>
+              }
             </div>
+
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">Fecha *</label>
-              <input type="date" formControlName="fecha" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
+              <label class="block font-semibold text-slate-300 mb-1.5">Fecha de Depósito:</label>
+              <input
+                type="date"
+                formControlName="fecha"
+                [max]="fechaHoyISO"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 outline-none focus:border-emerald-500 transition">
+              @if (ingresoForm.get('fecha')?.hasError('fechaFutura')) {
+                <p class="text-[11px] text-rose-400 mt-1">No se permiten fechas posteriores al día de hoy.</p>
+              }
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Fuente *</label>
-              <select formControlName="fuente" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
-                <option value="Nómina Fija">Nómina Fija</option>
-                <option value="Desarrollo Web">Desarrollo Web</option>
-                <option value="Consultoría">Consultoría</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Cuenta Destino *</label>
-              <select formControlName="cuentaDestino" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-violet-500">
-                <option value="Cuenta Monetaria BAC">Cuenta Monetaria BAC</option>
-                <option value="Cuenta de Ahorros BI">Cuenta de Ahorros BI</option>
-                <option value="BAM Nómina">BAM Nómina</option>
-                <option value="Efectivo / Caja">Efectivo / Caja</option>
-              </select>
-            </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Fuente de Ingreso:</label>
+            <select
+              formControlName="fuente"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 outline-none focus:border-emerald-500 transition">
+              <option value="Nómina Fija">Nómina Fija</option>
+              <option value="Desarrollo Web">Desarrollo Web</option>
+              <option value="Consultoría">Consultoría</option>
+            </select>
           </div>
 
-          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
-            <button type="button" (click)="cerrarModal()" class="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800/60 font-semibold transition cursor-pointer">
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              (click)="cerrarModal()"
+              class="px-4 py-2 font-semibold text-slate-300 hover:text-white bg-slate-800 rounded-xl transition cursor-pointer">
               Cancelar
             </button>
-            <button type="submit" [disabled]="ingresoForm.invalid" class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-semibold text-white shadow-lg shadow-emerald-600/30 hover:opacity-90 disabled:opacity-50 cursor-pointer transition">
-              {{ modoEdicion() ? 'Guardar Cambios' : 'Registrar Ingreso' }}
+            <button
+              type="submit"
+              class="px-4 py-2 font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-md transition cursor-pointer">
+              {{ modoEdicion() ? 'Actualizar Abono' : 'Guardar Abono' }}
             </button>
           </div>
         </form>
       </div>
     </div>
   }
+
 </div>

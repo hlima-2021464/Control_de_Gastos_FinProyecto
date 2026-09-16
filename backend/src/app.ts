@@ -1,11 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import { env } from './config/env';
 import authRoutes from './modules/auth/routes/auth.routes';
 import usersRoutes from './modules/users/routes/users.routes';
 import { errorHandler } from './middlewares/errorHandler';
 
-const app = express();
+const app: Application = express();
 
 // ─── Middlewares globales ────────────────────────────────────────
 app.use(cors({

@@ -1,9 +1,8 @@
-import { Request, Response } from 'express';
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { authMiddleware } from '../../../middlewares/auth.middleware';
 import { requireRole } from '../../../middlewares/require-role.middleware';
 
-const router = Router();
+const router: Router = Router();
 
 // Aplicar authMiddleware a todas las rutas de usuarios
 router.use(authMiddleware);

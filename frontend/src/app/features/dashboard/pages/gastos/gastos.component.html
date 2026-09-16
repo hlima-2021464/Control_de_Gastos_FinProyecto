@@ -1,0 +1,328 @@
+<div class="space-y-5 p-6 min-h-full pb-20">
+
+  <!-- Header Superior -->
+  <header class="flex justify-between items-center relative z-20">
+    <div>
+      <h2 class="text-xl font-bold tracking-tight text-white">Gestión y Registro de Gastos</h2>
+      <p class="text-xs text-slate-400">Auditoría, control y clasificación de sus egresos y consumos financieros.</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Selector de Calendario y Fechas en Tiempo Real -->
+      <div class="relative">
+        <button
+          id="btn-calendario-gastos"
+          type="button"
+          (click)="toggleSelectorCalendario($event)"
+          class="glass-card px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 border border-violet-500/20 flex items-center gap-1.5 hover:border-violet-500/50 transition cursor-pointer shadow-sm">
+          <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span>{{ mesAnioActual() }}</span>
+        </button>
+
+        @if (mostrarSelectorCalendario()) {
+          <div
+            id="popup-calendario-gastos"
+            (click)="$event.stopPropagation()"
+            class="absolute right-0 mt-2 w-64 p-3.5 rounded-2xl glass-card border border-slate-700/80 shadow-2xl z-50 space-y-2.5 animate-fade-in bg-slate-900/95 backdrop-blur-xl">
+            <div class="border-b border-slate-800 pb-2">
+              <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Fecha en Tiempo Real</p>
+              <p class="text-xs font-bold text-cyan-300">{{ fechaCompletaHoy() }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">Alternar Mes Contable</p>
+              <div class="grid grid-cols-4 gap-1">
+                @for (m of ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']; track $index) {
+                  <button
+                    type="button"
+                    (click)="seleccionarMes($index)"
+                    class="p-1.5 rounded-lg text-[11px] text-slate-300 hover:text-white hover:bg-violet-600/40 text-center transition cursor-pointer">
+                    {{ m }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <button
+        id="btn-registrar-gasto"
+        type="button"
+        (click)="abrirModalRegistro()"
+        class="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 rounded-xl text-xs font-semibold text-white shadow-lg shadow-rose-600/25 hover:opacity-90 transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <span>Registrar Gasto</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 1. Métricas Principales de Gasto -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Gasto Total -->
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-rose-500 space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-semibold text-slate-300">Gasto Total del Mes</span>
+        <span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-400 font-bold">Salidas</span>
+      </div>
+      <p class="text-xl font-bold text-slate-100 font-mono">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalGastos$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
+      <p class="text-[11px] text-slate-400">Total debitado en el período.</p>
+    </div>
+
+    <!-- Promedio Diario -->
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-amber-400 space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-semibold text-slate-300">Promedio Diario Estimado</span>
+        <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 font-bold">Consumo</span>
+      </div>
+      <p class="text-xl font-bold text-slate-100 font-mono">
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((promedioDiario$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+      </p>
+      <p class="text-[11px] text-slate-400">Calculado sobre el ciclo mensual.</p>
+    </div>
+
+    <!-- Categoría de Mayor Consumo -->
+    <div class="glass-card p-4 rounded-2xl border-l-4 border-violet-400 space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-semibold text-slate-300">Rubro de Mayor Consumo</span>
+        <span class="px-2 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-400 font-bold">Principal</span>
+      </div>
+      @if (categoriaMayorConsumo$ | async; as mayor) {
+        <p class="text-xl font-bold text-slate-100">{{ mayor.categoria }}</p>
+        <p class="text-[11px] text-violet-400 font-medium font-mono">
+          Acumulado: {{ (simboloMoneda$ | async) || 'Q' }} {{ (mayor.total | appMoneda) | number:'1.2-2' }}
+        </p>
+      } @else {
+        <p class="text-xl font-bold text-slate-400">Ninguno</p>
+        <p class="text-[11px] text-slate-500">Sin transacciones registradas.</p>
+      }
+    </div>
+  </section>
+
+  <!-- 2. Filtros Dinámicos -->
+  <section class="glass-card p-3 rounded-xl flex flex-wrap gap-3 items-center">
+    <!-- Barra de Búsqueda con Lupa Funcional -->
+    <div class="relative flex-1 min-w-[200px]">
+      <input
+        type="text"
+        id="input-buscar-gasto"
+        [(ngModel)]="filtroTexto"
+        (ngModelChange)="actualizarFiltros()"
+        placeholder="Buscar por concepto o método de pago..."
+        class="w-full bg-slate-900/60 border border-slate-700/60 rounded-lg pl-3 pr-9 py-1.5 text-xs text-slate-200 outline-none focus:border-rose-500">
+      <button
+        id="btn-lupa-gastos"
+        type="button"
+        (click)="actualizarFiltros()"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+        title="Buscar gastos">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </button>
+    </div>
+
+    <!-- Categoría -->
+    <select
+      [(ngModel)]="filtroCategoria"
+      (ngModelChange)="actualizarFiltros()"
+      class="bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none">
+      <option value="">Todas las categorías</option>
+      @for (cat of (categoriasGasto$ | async); track cat.id) {
+        <option [value]="cat.nombre">{{ cat.nombre }}</option>
+      }
+    </select>
+
+    <!-- Rango de Fechas -->
+    <div class="flex items-center gap-1.5 text-xs text-slate-400">
+      <span>Desde:</span>
+      <input
+        type="date"
+        [(ngModel)]="filtroFechaInicio"
+        (ngModelChange)="actualizarFiltros()"
+        [max]="fechaHoyISO"
+        class="bg-slate-900/60 border border-slate-700/60 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none">
+      <span>Hasta:</span>
+      <input
+        type="date"
+        [(ngModel)]="filtroFechaFin"
+        (ngModelChange)="actualizarFiltros()"
+        [max]="fechaHoyISO"
+        class="bg-slate-900/60 border border-slate-700/60 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none">
+    </div>
+
+    @if (filtroTexto || filtroCategoria || filtroFechaInicio || filtroFechaFin) {
+      <button
+        type="button"
+        (click)="limpiarFiltros()"
+        class="text-xs text-rose-400 hover:text-rose-300 transition underline cursor-pointer ml-auto">
+        Limpiar filtros
+      </button>
+    }
+  </section>
+
+  <!-- 3. Tabla de Gastos -->
+  <section class="glass-card rounded-2xl overflow-hidden shadow-lg border border-slate-800">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-300">
+        <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <tr>
+            <th class="p-3.5">Fecha</th>
+            <th class="p-3.5">Concepto</th>
+            <th class="p-3.5">Categoría</th>
+            <th class="p-3.5">Método de Pago</th>
+            <th class="p-3.5 text-right">Importe</th>
+            <th class="p-3.5 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          @for (item of (listaGastosFiltrada$ | async); track item.id) {
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-3.5 font-mono text-slate-400">{{ item.fecha }}</td>
+              <td class="p-3.5 font-medium text-slate-100">{{ item.concepto }}</td>
+              <td class="p-3.5">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                  {{ item.categoria }}
+                </span>
+              </td>
+              <td class="p-3.5 text-slate-400">{{ item.metodoPago }}</td>
+              <td class="p-3.5 text-right font-mono font-bold text-rose-400">
+                -{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.monto | appMoneda) | number:'1.2-2' }}
+              </td>
+              <td class="p-3.5 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    (click)="editarGasto(item)"
+                    class="p-1 text-slate-400 hover:text-cyan-400 transition cursor-pointer"
+                    title="Editar registro">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="eliminarGasto(item.id)"
+                    class="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                    title="Eliminar registro">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+          @if ((listaGastosFiltrada$ | async)?.length === 0) {
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-500">
+                No se encontraron gastos con los criterios seleccionados.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. Modal de Registro / Edición -->
+  @if (mostrarModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+      <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-slate-700/80 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 class="text-sm font-bold text-white">
+            {{ modoEdicion() ? 'Editar Registro de Gasto' : 'Registrar Nuevo Gasto' }}
+          </h3>
+          <button type="button" (click)="cerrarModal()" class="text-slate-400 hover:text-white cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <!-- Alerta de Saldo Insuficiente -->
+        @if (errorSaldoInsuficiente()) {
+          <div class="p-3 bg-rose-500/10 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-medium leading-relaxed animate-shake">
+            {{ errorSaldoInsuficiente() }}
+          </div>
+        }
+
+        <form [formGroup]="gastoForm" (ngSubmit)="guardarGasto()" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Concepto o Descripción:</label>
+            <input
+              type="text"
+              formControlName="concepto"
+              placeholder="Ej. Compra de supermercado mensual"
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-rose-500">
+            @if (gastoForm.get('concepto')?.invalid && gastoForm.get('concepto')?.touched) {
+              <p class="text-[11px] text-rose-400 mt-1">El concepto es obligatorio (mínimo 3 caracteres).</p>
+            }
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">
+                Importe ({{ (simboloMoneda$ | async) || 'Q' }}):
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                formControlName="monto"
+                placeholder="0.00"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-rose-500 font-mono">
+              @if (gastoForm.get('monto')?.invalid && gastoForm.get('monto')?.touched) {
+                <p class="text-[11px] text-rose-400 mt-1">Ingrese un monto válido mayor a 0.</p>
+              }
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Fecha de Operación:</label>
+              <input
+                type="date"
+                formControlName="fecha"
+                [max]="fechaHoyISO"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-rose-500">
+              @if (gastoForm.get('fecha')?.hasError('fechaFutura')) {
+                <p class="text-[11px] text-rose-400 mt-1">No se permiten fechas posteriores al día de hoy.</p>
+              }
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Categoría:</label>
+              <select
+                formControlName="categoria"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-rose-500">
+                @for (cat of (categoriasGasto$ | async); track cat.id) {
+                  <option [value]="cat.nombre">{{ cat.nombre }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Método de Pago:</label>
+              <select
+                formControlName="metodoPago"
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 outline-none focus:border-rose-500">
+                <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Efectivo">Efectivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              (click)="cerrarModal()"
+              class="px-4 py-2 font-semibold text-slate-300 hover:text-white bg-slate-800 rounded-xl transition cursor-pointer">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md transition cursor-pointer">
+              {{ modoEdicion() ? 'Actualizar Gasto' : 'Guardar Gasto' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
