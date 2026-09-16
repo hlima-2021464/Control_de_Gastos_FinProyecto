@@ -23,50 +23,50 @@ export const dashboardRoutes: Routes = [
       {
         path: 'gastos',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/gastos/gastos.component').then(
+            (m) => m.GastosComponent
           ),
-        title: 'Gastos — En Construcción',
+        title: 'Control de Gastos - Gestión de Gastos',
       },
       {
         path: 'presupuestos',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/presupuestos/presupuestos.component').then(
+            (m) => m.PresupuestosComponent
           ),
-        title: 'Presupuestos — En Construcción',
+        title: 'Control de Gastos - Presupuestos y Techos',
       },
       {
         path: 'categorias',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/categorias/categorias.component').then(
+            (m) => m.CategoriasComponent
           ),
-        title: 'Categorías — En Construcción',
+        title: 'Control de Gastos - Catálogo de Categorías',
       },
       {
         path: 'reportes',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/reportes/reportes.component').then(
+            (m) => m.ReportesComponent
           ),
-        title: 'Reportes — En Construcción',
+        title: 'Control de Gastos - Reportes y Análisis',
       },
       {
         path: 'ahorro',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/ahorro/ahorro.component').then(
+            (m) => m.AhorroComponent
           ),
-        title: 'Ahorro — En Construcción',
+        title: 'Control de Gastos - Fondos y Metas de Ahorro',
       },
       {
         path: 'configuracion',
         loadComponent: () =>
-          import('../../shared/components/under-construction/under-construction.component').then(
-            (m) => m.UnderConstructionComponent
+          import('./pages/configuracion/configuracion.component').then(
+            (m) => m.ConfiguracionComponent
           ),
-        title: 'Configuración — En Construcción',
+        title: 'Control de Gastos - Configuración del Sistema',
       },
     ],
   },

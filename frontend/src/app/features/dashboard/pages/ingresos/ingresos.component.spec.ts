@@ -42,7 +42,6 @@ describe('IngresosComponent', () => {
       monto: 3000,
       fecha: '2026-08-14',
       fuente: 'Desarrollo Web',
-      cuentaDestino: 'Cuenta Monetaria BAC',
     });
 
     incomeService.agregarIngreso({
@@ -50,7 +49,6 @@ describe('IngresosComponent', () => {
       monto: 4000,
       fecha: '2026-08-15',
       fuente: 'Nómina Fija',
-      cuentaDestino: 'BAM Nómina',
     });
 
     component.filtroTexto = 'Freelance';
@@ -59,5 +57,18 @@ describe('IngresosComponent', () => {
     const lista = await firstValueFrom(component.listaIngresosFiltrada$);
     expect(lista.length).toBe(1);
     expect(lista[0].concepto).toBe('Pago Freelance Web');
+  });
+
+  it('should toggle period view between semanal and quincenal', () => {
+    expect(component.vistaPeriodo()).toBe('semanal');
+    component.setVistaPeriodo('quincenal');
+    expect(component.vistaPeriodo()).toBe('quincenal');
+    component.setVistaPeriodo('semanal');
+    expect(component.vistaPeriodo()).toBe('semanal');
+  });
+
+  it('should format date string correctly as DD/MM/YYYY', () => {
+    expect(component.formatearFechaDisplay('2026-08-22')).toBe('22/08/2026');
+    expect(component.formatearFechaDisplay('')).toBe('');
   });
 });

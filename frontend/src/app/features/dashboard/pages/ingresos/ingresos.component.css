@@ -1,25 +1,67 @@
 :host {
   display: block;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 .bar-glow {
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.45);
 }
 
 .glass-card {
-  background: rgba(22, 20, 48, 0.70);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(139, 92, 246, 0.20);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  background: rgba(20, 18, 44, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.42);
+}
+
+.neon-card-emerald {
+  border: 1.5px solid rgba(52, 211, 153, 0.85);
+  box-shadow: 0 0 22px rgba(52, 211, 153, 0.24);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neon-card-emerald:hover {
+  border-color: rgba(52, 211, 153, 1);
+  box-shadow: 0 0 30px rgba(52, 211, 153, 0.38);
+}
+
+.neon-card-cyan {
+  border: 1.5px solid rgba(34, 211, 238, 0.85);
+  box-shadow: 0 0 22px rgba(34, 211, 238, 0.24);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neon-card-cyan:hover {
+  border-color: rgba(34, 211, 238, 1);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.38);
+}
+
+.neon-card-violet {
+  border: 1.5px solid rgba(167, 139, 250, 0.85);
+  box-shadow: 0 0 22px rgba(167, 139, 250, 0.24);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neon-card-violet:hover {
+  border-color: rgba(167, 139, 250, 1);
+  box-shadow: 0 0 30px rgba(167, 139, 250, 0.38);
+}
+
+.button-luminous-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.42);
+  transition: all 0.25s ease;
+}
+
+.button-luminous-emerald:hover {
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.60);
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
