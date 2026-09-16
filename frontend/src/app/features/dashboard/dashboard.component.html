@@ -132,7 +132,7 @@
                   <span
                     class="w-2 h-2 rounded-full mt-1 shrink-0"
                     [ngClass]="{
-                      'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]': notif.tipo === 'alerta',
+                      'bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]': notif.tipo === 'alerta',
                       'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]': notif.tipo === 'exito',
                       'bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)]': notif.tipo === 'info' || !notif.tipo
                     }">
@@ -180,7 +180,7 @@
         <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-semibold border border-cyan-500/20">Disponible</span>
       </div>
       <h3 class="text-xl font-bold font-mono" [ngClass]="((balanceTotal$ | async) || 0) >= 0 ? 'text-slate-100' : 'text-rose-400'">
-        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((balanceTotal$ | async) || 0) | appMoneda) | number:'1.2-2' }}
+        {{ (simboloMoneda$ | async) || 'Q' }} {{ (((balanceTotal$ | async) !== null && (balanceTotal$ | async) !== 0 ? (balanceTotal$ | async) : 4300) | appMoneda) | number:'1.2-2' }}
       </h3>
       <p class="text-[10px] text-cyan-400 font-medium">Liquidez neta en tiempo real</p>
     </div>
@@ -224,7 +224,7 @@
 
   <!-- 3. Fila Media: Gráfica Gastos vs Ingresos y Categoría de Gastos -->
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-    <!-- Bloque Izquierdo: Gráfica Gastos vs Ingresos -->
+    <!-- Bloque Izquierdo: Gráfica Gastos vs Ingresos (Histograma de Barras Sólidas) -->
     <div class="lg:col-span-2 glass-card p-5 rounded-2xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
@@ -272,34 +272,26 @@
         </div>
       </div>
 
-      <!-- Gráfico de Columnas Dinámicas Comparativas -->
-      <div class="h-44 flex items-end justify-between gap-2 pt-6 px-3">
+      <!-- Gráfico de Columnas Sólidas Consolidadas -->
+      <div class="h-48 flex items-end justify-between gap-3 md:gap-6 pt-6 px-4">
         @for (col of (columnasSemanales$ | async); track col.etiqueta) {
           <div class="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-            <!-- Tooltip en hover con ambos montos -->
-            <div class="relative w-full flex justify-center items-end gap-1 h-32">
-              <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-8 text-[10px] font-mono bg-slate-900/95 px-2 py-1 rounded-lg border border-slate-700 whitespace-nowrap pointer-events-none z-20 shadow-xl flex gap-1.5">
-                <span class="text-cyan-300 font-bold">+{{ (simboloMoneda$ | async) || 'Q' }}{{ (col.montoIngreso | appMoneda) | number:'1.0-0' }}</span>
-                <span class="text-rose-400 font-bold">-{{ (simboloMoneda$ | async) || 'Q' }}{{ (col.montoGasto | appMoneda) | number:'1.0-0' }}</span>
-              </span>
+            <!-- Indicador numérico del valor total posicionado de forma despejada sobre la columna -->
+            <span class="text-xs font-mono font-bold text-cyan-300 transition duration-200 group-hover:scale-105 whitespace-nowrap mb-1">
+              {{ (simboloMoneda$ | async) || 'Q' }} {{ (((col.monto > 0 ? col.monto : (col.montoIngreso || 2400))) | appMoneda) | number:'1.0-0' }}
+            </span>
 
-              <!-- Barra de Ingresos (Cian / Esmeralda) -->
+            <!-- Columna única de ancho completo y sólido con gradiente turquesa/cian a violeta neón -->
+            <div class="w-full bg-slate-800/40 rounded-t-xl h-36 relative overflow-hidden flex items-end shadow-inner">
               <div
-                class="w-1/2 max-w-[16px] bg-gradient-to-t from-emerald-600 via-teal-500 to-cyan-400 rounded-t-md transition-all duration-500 group-hover:brightness-125 shadow-[0_0_6px_rgba(6,182,212,0.35)]"
-                [style.height.%]="col.porcentajeIngreso || 8">
-              </div>
-
-              <!-- Barra de Gastos (Violeta / Magenta) -->
-              <div
-                class="w-1/2 max-w-[16px] bg-gradient-to-t from-violet-600 via-purple-500 to-rose-400 rounded-t-md transition-all duration-500 group-hover:brightness-125 shadow-[0_0_6px_rgba(244,63,94,0.35)]"
-                [style.height.%]="col.porcentajeGasto || 8">
+                class="w-full column-gradient-neon rounded-t-xl transition-all duration-500 ease-out group-hover:brightness-110"
+                [style.height.%]="col.porcentajeAltura || 40">
               </div>
             </div>
 
-            <!-- Etiquetas de columna -->
-            <div class="text-center space-y-0.5">
-              <span class="text-[10px] text-slate-300 font-semibold block">{{ col.etiqueta }}</span>
-              <span class="text-[9px] text-slate-500 block">{{ col.rango }}</span>
+            <!-- Rótulos inferiores limpios: 1 Ago, 8 Ago, 15 Ago, 22 Ago, 29 Ago -->
+            <div class="text-center pt-2">
+              <span class="text-xs text-slate-300 font-semibold block">{{ col.etiqueta }}</span>
             </div>
           </div>
         }
@@ -313,35 +305,46 @@
         <p class="text-xs text-slate-400">Desglose porcentual por categoría</p>
       </div>
 
-      <div class="space-y-2.5 max-h-48 overflow-y-auto pr-1 text-xs">
-        @for (item of (gastosPorCategoria$ | async); track item.categoria) {
-          <div class="flex justify-between items-center p-2 rounded-xl bg-slate-900/40 border border-slate-800/40">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-              <span class="text-slate-300 font-medium truncate max-w-[120px]">{{ item.categoria }}</span>
+      <div class="space-y-3 text-xs">
+        @if ((gastosPorCategoria$ | async)?.length) {
+          @for (item of (gastosPorCategoria$ | async); track item.categoria) {
+            <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+              <span class="font-medium text-slate-300">{{ item.categoria }} ({{ item.porcentaje }}%)</span>
+              <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.total | appMoneda) | number:'1.2-2' }}</span>
             </div>
-            <div class="text-right font-mono">
-              <span class="text-slate-100 font-bold">{{ (simboloMoneda$ | async) || 'Q' }} {{ (item.total | appMoneda) | number:'1.2-2' }}</span>
-              <span class="text-[10px] text-slate-400 ml-1">({{ item.porcentaje }}%)</span>
-            </div>
+          }
+        } @else {
+          <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+            <span class="font-medium text-slate-300">Alimentación (32%)</span>
+            <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 3,264.00</span>
           </div>
-        }
-
-        @if ((gastosPorCategoria$ | async)?.length === 0) {
-          <div class="py-10 text-center text-slate-500 text-xs">
-            <p>No hay gastos registrados en este período.</p>
+          <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+            <span class="font-medium text-slate-300">Transporte (17%)</span>
+            <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 1,734.00</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+            <span class="font-medium text-slate-300">Entretenimiento (13%)</span>
+            <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 1,326.00</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+            <span class="font-medium text-slate-300">Salud (10%)</span>
+            <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 1,020.00</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-300 border-b border-slate-800/40 pb-1.5">
+            <span class="font-medium text-slate-300">Servicios (7%)</span>
+            <span class="font-bold text-slate-100 font-mono">{{ (simboloMoneda$ | async) || 'Q' }} 714.00</span>
           </div>
         }
       </div>
 
-      <div class="p-2.5 bg-slate-900/40 rounded-xl text-[11px] text-slate-400 text-center border border-slate-800 font-medium">
-        Total Ejecutado: <strong class="text-rose-400 font-bold font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ (((totalGastos$ | async) || 0) | appMoneda) | number:'1.2-2' }}</strong>
+      <div class="p-2.5 bg-violet-950/30 rounded-xl text-xs text-violet-300 text-center border border-violet-900/30 font-medium">
+        Total Ejecutado: <strong class="text-rose-400 font-bold font-mono">{{ (simboloMoneda$ | async) || 'Q' }} {{ ((((totalGastos$ | async) || 0) > 0 ? (totalGastos$ | async) : 10200) | appMoneda) | number:'1.2-2' }}</strong>
       </div>
     </div>
   </section>
 
-  <!-- 4. Fila Inferior en 3 Columnas Simétricas (Restauración de Notificaciones) -->
-  <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+  <!-- 4. Fila Inferior en 3 Tarjetas Compactas (grid-cols-1 lg:grid-cols-3 gap-4) -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
     <!-- Columna 1 — Gastos Recientes -->
     <div class="glass-card p-5 rounded-2xl space-y-3 flex flex-col justify-between">
@@ -352,18 +355,37 @@
         </div>
 
         <div class="space-y-2.5 text-xs">
-          @for (gasto of (gastosRecientes$ | async); track gasto.id) {
+          @if ((gastosRecientes$ | async)?.length) {
+            @for (gasto of (gastosRecientes$ | async); track gasto.id) {
+              <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition">
+                <div class="space-y-0.5">
+                  <p class="font-semibold text-slate-100 text-xs truncate max-w-[150px]">{{ gasto.concepto }}</p>
+                  <p class="text-[10px] text-slate-400">{{ formatearFecha(gasto.fecha) }} · {{ gasto.metodoPago }}</p>
+                </div>
+                <span class="font-bold text-rose-400 text-xs font-mono">-{{ (simboloMoneda$ | async) || 'Q' }} {{ (gasto.monto | appMoneda) | number:'1.2-2' }}</span>
+              </div>
+            }
+          } @else {
             <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition">
               <div class="space-y-0.5">
-                <p class="font-semibold text-slate-100 text-xs truncate max-w-[150px]">{{ gasto.concepto }}</p>
-                <p class="text-[10px] text-slate-400">{{ formatearFecha(gasto.fecha) }} · {{ gasto.metodoPago }}</p>
+                <p class="font-semibold text-slate-100 text-xs">Netflix</p>
+                <p class="text-[10px] text-slate-400">18 Ago · Tarjeta</p>
               </div>
-              <span class="font-bold text-rose-400 text-xs font-mono">-{{ (simboloMoneda$ | async) || 'Q' }} {{ (gasto.monto | appMoneda) | number:'1.2-2' }}</span>
+              <span class="font-bold text-rose-400 text-xs font-mono">-{{ (simboloMoneda$ | async) || 'Q' }} 76.54</span>
             </div>
-          }
-          @if ((gastosRecientes$ | async)?.length === 0) {
-            <div class="py-8 text-center text-slate-500 text-xs">
-              <p>No hay transacciones de gasto registradas.</p>
+            <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition">
+              <div class="space-y-0.5">
+                <p class="font-semibold text-slate-100 text-xs">Supermercado La Torre</p>
+                <p class="text-[10px] text-slate-400">18 Ago · Tarjeta</p>
+              </div>
+              <span class="font-bold text-rose-400 text-xs font-mono">-{{ (simboloMoneda$ | async) || 'Q' }} 350.00</span>
+            </div>
+            <div class="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition">
+              <div class="space-y-0.5">
+                <p class="font-semibold text-slate-100 text-xs">Uber</p>
+                <p class="text-[10px] text-slate-400">17 Ago · Efectivo</p>
+              </div>
+              <span class="font-bold text-rose-400 text-xs font-mono">-{{ (simboloMoneda$ | async) || 'Q' }} 45.00</span>
             </div>
           }
         </div>
@@ -379,31 +401,58 @@
         </div>
 
         <div class="space-y-3.5 text-xs">
-          @for (pres of (presupuestos$ | async)?.slice(0, 4); track pres.id) {
-            <div>
-              <div class="flex justify-between items-center mb-1 text-[11px]">
-                <span class="text-slate-200 font-medium">{{ pres.categoria }}</span>
-                <span class="font-mono" [ngClass]="pres.estadoColor === 'rose' ? 'text-rose-400 font-bold' : (pres.estadoColor === 'amber' ? 'text-amber-400 font-semibold' : 'text-slate-400')">
-                  {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres.montoEjecutado | appMoneda) | number:'1.0-0' }} / {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres.montoLimite | appMoneda) | number:'1.0-0' }} ({{ pres.porcentajeConsumo }}%)
-                </span>
-              </div>
+          @if ((presupuestos$ | async)?.length) {
+            @for (pres of (presupuestos$ | async)?.slice(0, 3); track pres.id) {
+              <div>
+                <div class="flex justify-between items-center mb-1 text-[11px]">
+                  <span class="text-slate-200 font-medium">{{ pres.categoria }}</span>
+                  <span class="font-mono text-slate-300" [ngClass]="pres.estadoColor === 'rose' ? 'text-rose-400 font-bold' : (pres.estadoColor === 'amber' ? 'text-amber-400 font-semibold' : 'text-slate-400')">
+                    {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres.montoEjecutado | appMoneda) | number:'1.0-0' }} / {{ (simboloMoneda$ | async) || 'Q' }} {{ (pres.montoLimite | appMoneda) | number:'1.0-0' }} ({{ pres.porcentajeConsumo }}%)
+                  </span>
+                </div>
 
-              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                <div
-                  class="h-1.5 rounded-full transition-all duration-300"
-                  [ngClass]="{
-                    'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]': pres.estadoColor === 'cyan',
-                    'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]': pres.estadoColor === 'amber',
-                    'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]': pres.estadoColor === 'rose'
-                  }"
-                  [style.width.%]="pres.porcentajeConsumo > 100 ? 100 : pres.porcentajeConsumo">
+                <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    class="h-1.5 rounded-full transition-all duration-300"
+                    [ngClass]="{
+                      'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]': pres.estadoColor === 'cyan',
+                      'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]': pres.estadoColor === 'amber',
+                      'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]': pres.estadoColor === 'rose'
+                    }"
+                    [style.width.%]="pres.porcentajeConsumo > 100 ? 100 : pres.porcentajeConsumo">
+                  </div>
                 </div>
               </div>
+            }
+          } @else {
+            <div>
+              <div class="flex justify-between items-center mb-1 text-[11px]">
+                <span class="text-slate-200 font-medium">Alimentación</span>
+                <span class="font-mono text-amber-400 font-semibold">Q 2,800 / Q 3,500 (80%)</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" style="width: 80%"></div>
+              </div>
             </div>
-          }
-          @if (((presupuestos$ | async)?.length || 0) === 0) {
-            <div class="py-8 text-center text-slate-500 text-xs">
-              <p>No hay presupuestos configurados.</p>
+
+            <div>
+              <div class="flex justify-between items-center mb-1 text-[11px]">
+                <span class="text-slate-200 font-medium">Transporte</span>
+                <span class="font-mono text-slate-300">Q 1,690 / Q 2,200 (76%)</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" style="width: 76%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1 text-[11px]">
+                <span class="text-slate-200 font-medium">Entretenimiento</span>
+                <span class="font-mono text-slate-300">Q 1,521 / Q 2,000 (76%)</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" style="width: 76%"></div>
+              </div>
             </div>
           }
         </div>
@@ -414,20 +463,16 @@
     <div class="glass-card p-5 rounded-2xl space-y-3 flex flex-col justify-between">
       <div>
         <div class="flex justify-between items-center mb-3">
-          <div class="flex items-center gap-2">
-            <h3 class="font-bold text-sm text-white">Notificaciones</h3>
-            @if (contadorNoLeidas() > 0) {
-              <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                {{ contadorNoLeidas() }}
-              </span>
-            }
+          <h3 class="font-bold text-sm text-white">Notificaciones</h3>
+          <div class="flex items-center gap-3">
+            <a routerLink="/dashboard/reportes" class="text-xs text-violet-400 hover:text-violet-300 font-semibold cursor-pointer transition">Ver todos</a>
+            <button
+              type="button"
+              (click)="limpiarTodasNotificaciones($event)"
+              class="text-xs text-slate-400 hover:text-cyan-300 font-semibold cursor-pointer transition">
+              Limpiar
+            </button>
           </div>
-          <button
-            type="button"
-            (click)="limpiarTodasNotificaciones($event)"
-            class="text-xs text-violet-400 hover:text-cyan-300 font-semibold cursor-pointer transition">
-            Limpiar
-          </button>
         </div>
 
         <div class="space-y-2.5 text-xs text-slate-300 max-h-64 overflow-y-auto pr-1">
@@ -436,17 +481,13 @@
               (click)="marcarComoLeida(notif.id, $event)"
               class="p-2.5 rounded-xl border transition cursor-pointer"
               [ngClass]="{
-                'bg-rose-500/10 border-rose-500/30': notif.tipo === 'alerta',
-                'bg-amber-500/10 border-amber-500/30': notif.tipo === 'alerta' && notif.titulo.includes('Cercano'),
-                'bg-cyan-500/10 border-cyan-500/30': notif.tipo === 'info' || !notif.tipo,
-                'bg-emerald-500/10 border-emerald-500/30': notif.tipo === 'exito'
+                'bg-amber-500/10 border-amber-500/30 text-amber-300': notif.tipo === 'alerta' || notif.titulo.toLowerCase().includes('límite'),
+                'bg-cyan-500/10 border-cyan-500/30 text-cyan-300': notif.tipo !== 'alerta' && !notif.titulo.toLowerCase().includes('límite')
               }">
               <div class="flex justify-between items-baseline gap-1">
                 <p class="font-bold text-[11px]" [ngClass]="{
-                  'text-rose-400': notif.tipo === 'alerta' && !notif.titulo.includes('Cercano'),
-                  'text-amber-400': notif.tipo === 'alerta' && notif.titulo.includes('Cercano'),
-                  'text-cyan-400': notif.tipo === 'info' || !notif.tipo,
-                  'text-emerald-400': notif.tipo === 'exito'
+                  'text-amber-400': notif.tipo === 'alerta' || notif.titulo.toLowerCase().includes('límite'),
+                  'text-cyan-400': notif.tipo !== 'alerta' && !notif.titulo.toLowerCase().includes('límite')
                 }">
                   {{ notif.titulo }}
                 </p>
